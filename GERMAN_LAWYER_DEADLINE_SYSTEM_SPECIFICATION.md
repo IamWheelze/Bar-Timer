@@ -2220,7 +2220,1075 @@ Complete Deadline Record:
 
 # PART 2: TECHNICAL SPECIFICATIONS
 
-*[To be completed]*
+## 2.1 System Architecture Requirements
+
+### A. Overall Architecture
+
+#### Recommended Architecture: Hybrid Cloud with On-Premise Option
+
+**Why Hybrid?**
+- German lawyers concerned about data sovereignty
+- DSGVO compliance easier with EU/German hosting
+- Some firms require on-premise for sensitive cases
+- Cloud offers scalability and automatic updates
+- Hybrid allows firm to choose based on comfort level
+
+#### Architecture Diagram (Logical)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     CLIENT LAYER                             │
+├─────────────────────────────────────────────────────────────┤
+│  Web App    │  Desktop App  │  Mobile App  │  API Clients  │
+│  (Browser)  │  (Electron)   │  (iOS/Android│  (Integrations)│
+└──────┬──────┴───────┬───────┴──────┬───────┴───────┬────────┘
+       │              │              │               │
+       └──────────────┴──────────────┴───────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   API GATEWAY / LOAD BALANCER                │
+│            (Authentication, Rate Limiting, Routing)          │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+       ┌───────────────────┼───────────────────┐
+       ▼                   ▼                   ▼
+┌──────────────┐  ┌─────────────────┐  ┌──────────────┐
+│  APPLICATION │  │  DEADLINE       │  │  INTEGRATION │
+│  SERVER      │  │  CALCULATION    │  │  SERVICES    │
+│  (Core Logic)│  │  ENGINE         │  │  (beA, APIs) │
+└──────┬───────┘  └────────┬────────┘  └──────┬───────┘
+       │                   │                   │
+       └───────────────────┼───────────────────┘
+                           │
+       ┌───────────────────┼───────────────────┐
+       ▼                   ▼                   ▼
+┌──────────────┐  ┌─────────────────┐  ┌──────────────┐
+│  DATABASE    │  │  DOCUMENT       │  │  AUDIT LOG   │
+│  (PostgreSQL)│  │  STORAGE (S3)   │  │  (Immutable) │
+└──────────────┘  └─────────────────┘  └──────────────┘
+       ▼                   ▼                   ▼
+┌──────────────────────────────────────────────────────┐
+│          BACKUP & DISASTER RECOVERY LAYER            │
+└──────────────────────────────────────────────────────┘
+```
+
+### B. Technology Stack Recommendations
+
+#### Backend
+**Application Server**:
+- **Language**: Python 3.11+ or Java 17+ (for OSCI library compatibility)
+- **Framework**:
+  - Python: FastAPI (modern, async, automatic API docs)
+  - Java: Spring Boot (enterprise-grade, mature ecosystem)
+- **Why**: Python for NLP/AI integration, Java for beA/OSCI compatibility
+
+**Calculation Engine**:
+- **Dedicated microservice**: Isolated for accuracy and testing
+- **Language**: Python (better for date/time manipulation libraries)
+- **Libraries**:
+  - `python-dateutil` for date calculations
+  - `workalendar` for holiday calendars (extend for German states)
+  - Custom logic for § 187-193 BGB
+- **Testing**: 100% test coverage with thousands of test cases
+
+**Database**:
+- **Primary**: PostgreSQL 15+ (ACID compliance, JSON support, reliability)
+- **Why**:
+  - Open source, no licensing issues
+  - Excellent data integrity
+  - JSON columns for flexible metadata
+  - Strong date/time support
+  - Mature backup/replication
+- **Alternative**: MySQL 8+ (more familiar to some, slightly less feature-rich)
+
+**Document Storage**:
+- **Object Storage**: S3-compatible (AWS S3, MinIO for on-premise)
+- **Why**: Scalable, cheap, versioning, encryption at rest
+- **Structure**:
+  ```
+  /firm-id/case-id/documents/
+  /firm-id/case-id/deadlines/calculations/
+  /firm-id/case-id/audit-logs/
+  ```
+
+**Audit Log**:
+- **Separate database**: Immutable append-only log
+- **Technology**: PostgreSQL with append-only tables + triggers to prevent updates/deletes
+- **Alternative**: Specialized audit log DB like Chronicle or use blockchain-style hash chain
+- **Backup**: Real-time replication to separate location
+
+#### Frontend
+**Web Application**:
+- **Framework**: React 18+ or Vue 3+
+- **UI Library**: Material-UI, Ant Design, or custom component library
+- **State Management**: Redux Toolkit or Zustand
+- **TypeScript**: Mandatory for type safety
+- **Build**: Vite (fast) or Webpack
+
+**Desktop Application** (Optional):
+- **Framework**: Electron (web tech wrapped as desktop app)
+- **Benefit**: Offline capability, feels like native app
+- **Drawback**: Large bundle size, memory usage
+
+**Mobile Applications**:
+- **Framework**: React Native (cross-platform iOS + Android)
+- **Alternative**: Native Swift (iOS) + Kotlin (Android) for best performance
+- **Features**:
+  - View deadlines
+  - Receive push notifications
+  - Quick deadline creation
+  - Read beA messages
+  - Limited offline mode
+
+#### Integration Layer
+**beA/EGVP Integration**:
+- **OSCI Library**: Governikus OSCI library (Java-based)
+- **Wrapper**: Create REST API wrapper around OSCI for other services to use
+- **Certificate Management**: Secure key store (HSM if high-security needed)
+- **Polling**: Background job every 15 minutes to check beA mailbox
+
+**Calendar Integration**:
+- **Microsoft**: Microsoft Graph API (OAuth 2.0)
+- **Google**: Google Calendar API (OAuth 2.0)
+- **CalDAV**: For Apple Calendar, other standards-compliant calendars
+- **Sync**: Bi-directional with conflict resolution
+
+**Email Integration**:
+- **IMAP/POP3**: Standard email protocols
+- **Office 365**: Microsoft Graph API
+- **Gmail**: Gmail API
+- **Parsing**: Email parser to extract court communications
+
+**DMS Integration**:
+- **RA-MICRO**: Custom integration (proprietary API)
+- **DATEV**: Custom integration (proprietary API)
+- **WebDAV**: For generic file systems
+- **REST APIs**: Where available from DMS vendors
+
+#### AI/NLP Layer
+**Document Processing**:
+- **OCR**: Tesseract (open source) or commercial (AWS Textract, Google Vision)
+- **PDF Processing**: PyPDF2, pdfplumber, Apache PDFBox
+- **NLP**:
+  - spaCy with custom German legal NER model
+  - OpenAI GPT-4 API for complex extraction (with data privacy consideration)
+  - Local LLM alternative: German legal BERT model
+- **Preprocessing**: OpenCV for image enhancement
+
+**Machine Learning**:
+- **Document Classification**: Sklearn, TensorFlow, or PyTorch
+- **Training Data**: Annotated corpus of German court documents
+- **Continuous Learning**: Feedback loop from manual corrections
+
+### C. Deployment Architecture
+
+#### Cloud Deployment (Primary Recommendation)
+**Provider Options**:
+1. **German Cloud Providers** (Best for DSGVO):
+   - Hetzner (German company, Frankfurt datacenter)
+   - IONOS (German, multiple EU datacenters)
+   - ProfitBricks / 1&1 (German infrastructure)
+
+2. **Major Cloud Providers with German Regions**:
+   - AWS Europe (Frankfurt) - eu-central-1
+   - Microsoft Azure Germany
+   - Google Cloud Europe (Frankfurt) - europe-west3
+
+**Kubernetes Architecture**:
+```
+Kubernetes Cluster (Germany Region)
+├── Namespace: production
+│   ├── Deployment: web-app (3 replicas)
+│   ├── Deployment: api-server (5 replicas, auto-scale to 20)
+│   ├── Deployment: calculation-engine (3 replicas)
+│   ├── Deployment: bea-integration (2 replicas)
+│   ├── Deployment: document-processor (3 replicas, GPU-enabled)
+│   ├── StatefulSet: postgresql-primary
+│   ├── StatefulSet: postgresql-replica (2 replicas)
+│   └── CronJob: bea-poller (every 15 min)
+└── Namespace: staging
+    └── [Mirror of production, scaled down]
+```
+
+**Load Balancing**:
+- **L7 Load Balancer**: NGINX or Traefik
+- **SSL/TLS**: Let's Encrypt certificates (auto-renewal)
+- **CDN**: CloudFlare or Fastly for static assets
+- **Health Checks**: Automated health endpoints
+
+**Scaling Strategy**:
+- **Horizontal Pod Autoscaler**: Scale based on CPU/memory
+- **Metrics**:
+  - Target: 70% CPU utilization
+  - Scale up when: Average CPU > 70% for 2 minutes
+  - Scale down when: Average CPU < 30% for 5 minutes
+- **Database**: Read replicas for scaling reads
+- **Document Storage**: S3 auto-scales
+
+#### On-Premise Deployment (Alternative)
+**For firms requiring on-premise**:
+- **Docker Compose** for smaller deployments (1-50 users)
+- **Single Server**: All services on one powerful server
+- **Components**:
+  ```
+  docker-compose.yml:
+    - web-app container
+    - api-server container
+    - postgresql container
+    - document-storage (MinIO) container
+    - nginx reverse proxy
+  ```
+- **Hardware Requirements**:
+  - CPU: 16 cores
+  - RAM: 64 GB
+  - Storage: 2 TB SSD (RAID 1 for redundancy)
+  - Backup: NAS with automated daily backups
+
+**Hybrid Deployment**:
+- **Sensitive data** (case files, client info): On-premise
+- **Computation** (deadline calculations, NLP): Cloud
+- **Compromise**: Satisfies privacy concerns while leveraging cloud benefits
+
+### D. Microservices Design
+
+**Service Breakdown**:
+
+1. **User Service**:
+   - Authentication, authorization
+   - User management (lawyers, staff)
+   - Role-based access control (RBAC)
+   - Session management
+
+2. **Case Service**:
+   - Case/matter management
+   - Client information
+   - Case-deadline associations
+   - Document linking
+
+3. **Deadline Service** (Core):
+   - CRUD operations for deadlines
+   - Delegation management
+   - Status tracking
+   - History/audit log
+
+4. **Calculation Engine**:
+   - Deadline date calculations
+   - Holiday calendar management
+   - § 187-193 BGB logic
+   - Verification and double-checking
+
+5. **Notification Service**:
+   - Email notifications
+   - SMS notifications
+   - Push notifications
+   - Escalation logic
+   - Digest generation
+
+6. **beA Integration Service**:
+   - OSCI communication
+   - Message polling
+   - Document extraction
+   - Certificate management
+
+7. **Document Processing Service**:
+   - OCR processing
+   - NLP extraction
+   - PDF parsing
+   - Confidence scoring
+
+8. **Calendar Integration Service**:
+   - Outlook sync
+   - Google Calendar sync
+   - CalDAV sync
+   - Conflict resolution
+
+9. **Reporting Service**:
+   - Deadline reports
+   - Near-miss analytics
+   - Compliance reports
+   - Export generation
+
+10. **Audit Service**:
+    - Immutable log writing
+    - Log retrieval
+    - Export for insurance
+    - Compliance reporting
+
+**Inter-Service Communication**:
+- **Synchronous**: REST APIs with JSON (for user-facing requests)
+- **Asynchronous**: Message queue (RabbitMQ or Apache Kafka) for background tasks
+- **Service Discovery**: Kubernetes DNS or Consul
+
+## 2.2 Data Security & Compliance
+
+### A. GDPR/DSGVO Compliance
+
+#### Legal Basis for Processing
+**Article 6(1) GDPR - Lawful Basis**:
+- **Contract performance** (Art 6(1)(b)): Processing necessary for lawyer-client contract
+- **Legal obligation** (Art 6(1)(c)): Lawyers required to manage deadlines (BRAO)
+- **Legitimate interest** (Art 6(1)(f)): Preventing malpractice claims
+
+**Special Categories of Data**:
+- Legal case data may include sensitive information (health, criminal records)
+- **Extra protections required**: Encryption, strict access controls
+- **Legal basis**: Legal claims defense (Art 9(2)(f))
+
+#### Data Minimization
+**Principle**: Only collect data necessary for deadline management
+
+**Required Data**:
+- ✅ Lawyer names, roles
+- ✅ Case numbers, court names
+- ✅ Deadline dates, calculations
+- ✅ Client identifiers (pseudonymized where possible)
+- ✅ Court documents (necessary for deadline extraction)
+
+**Not Required**:
+- ❌ Client addresses (unless needed for filing)
+- ❌ Detailed case merits (only deadline-relevant info)
+- ❌ Financial information (unless related to court fees)
+
+#### Data Subject Rights
+
+**Right to Access** (Art 15):
+- Clients can request all deadline data related to their case
+- Must provide within 30 days
+- **System feature**: Self-service export for lawyers to provide to clients
+
+**Right to Rectification** (Art 16):
+- Correct inaccurate deadline data
+- **System feature**: Edit deadline with audit trail of changes
+
+**Right to Erasure** (Art 17):
+- Delete data when no longer necessary
+- **Exception**: Legal retention requirements (6-10 years) override
+- **System feature**: Automated deletion after retention period
+
+**Right to Data Portability** (Art 20):
+- Export deadline data in machine-readable format (JSON, CSV)
+- **System feature**: One-click export
+
+**Right to Object** (Art 21):
+- Clients can object to processing for direct marketing (not applicable here)
+- Cannot object to processing necessary for legal obligations
+
+#### Privacy by Design
+**Built-in Privacy Features**:
+- **Pseudonymization**: Client names replaced with IDs internally where possible
+- **Encryption**: All personal data encrypted at rest and in transit
+- **Access controls**: Role-based, need-to-know basis
+- **Audit logging**: All data access logged for accountability
+- **Data minimization**: Don't store more than necessary
+
+#### Data Processing Agreement (DPA)
+**If cloud-hosted**: DPA with cloud provider required
+- **GDPR Article 28**: Processor obligations
+- **Content**:
+  - Scope of processing
+  - Duration
+  - Nature and purpose
+  - Type of personal data
+  - Categories of data subjects
+  - Obligations and rights of controller
+- **Standard Contractual Clauses** (SCCs) if non-EU provider
+
+### B. Data Residency Requirements
+
+**DSGVO Preference**: Data stored within EU
+**Best**: Data stored within Germany
+
+**Cloud Provider Selection Criteria**:
+1. **Primary**: German datacenters (Frankfurt, Munich, Berlin)
+2. **Acceptable**: EU datacenters (Amsterdam, Dublin, Paris)
+3. **Avoid**: Non-EU datacenters (unless SCCs + adequate protections)
+
+**Data Transfer Restrictions**:
+- **No transfer to USA** without Privacy Shield replacement or SCCs
+- **No transfer to China, Russia** (Schrems II ruling implications)
+- **Transfer within EU**: Generally allowed but document in DPA
+
+**On-Premise Advantage**:
+- Complete data sovereignty
+- No third-party processor concerns
+- Easier compliance for risk-averse firms
+
+### C. Encryption Standards
+
+#### Encryption at Rest
+**Database Encryption**:
+- **Method**: AES-256 encryption
+- **Implementation**:
+  - PostgreSQL: Transparent Data Encryption (TDE) or filesystem-level (LUKS)
+  - Column-level encryption for extra-sensitive fields (client names)
+- **Key Management**: Separate key management system (AWS KMS, HashiCorp Vault)
+
+**Document Storage Encryption**:
+- **Method**: AES-256
+- **Implementation**: S3 Server-Side Encryption (SSE-S3 or SSE-KMS)
+- **Client-side encryption**: Optional additional layer
+
+**Backup Encryption**:
+- **All backups encrypted** before storage
+- **Separate encryption keys** from production data
+- **Offline backups**: Encrypted on separate media
+
+#### Encryption in Transit
+**TLS/SSL**:
+- **Minimum version**: TLS 1.2 (prefer TLS 1.3)
+- **Cipher suites**: Modern, strong ciphers only
+  - ECDHE-RSA-AES128-GCM-SHA256
+  - ECDHE-RSA-AES256-GCM-SHA384
+  - Disable: SSL 2.0, SSL 3.0, TLS 1.0, TLS 1.1
+- **Certificate**: Valid SSL certificate from trusted CA
+- **HSTS**: HTTP Strict Transport Security enabled
+
+**API Communication**:
+- **All APIs**: HTTPS only, no HTTP
+- **API keys**: Never in URLs, always in headers
+- **OAuth tokens**: Short-lived, refresh token rotation
+
+**beA Communication**:
+- **Double encryption**: OSCI protocol provides end-to-end encryption ON TOP of TLS
+- **Certificate-based**: Client certificates required
+
+#### Key Management
+**Key Hierarchy**:
+```
+Master Key (HSM or KMS)
+    ↓
+Data Encryption Keys (DEKs)
+    ↓
+Individual Record Encryption
+```
+
+**Key Rotation**:
+- **Master keys**: Rotate annually
+- **Data encryption keys**: Rotate every 90 days
+- **API keys**: Rotate every 30 days
+- **User passwords**: Require change every 90 days (configurable)
+
+**Key Storage**:
+- **Production keys**: Hardware Security Module (HSM) or cloud KMS
+- **Development keys**: Separate key store, never use production keys
+- **Backup keys**: Encrypted and stored offline in secure location
+
+### D. Backup and Disaster Recovery
+
+#### Backup Strategy
+
+**3-2-1 Rule**:
+- **3 copies** of data
+- **2 different media** types
+- **1 off-site** backup
+
+**Backup Schedule**:
+```
+Database:
+- Full backup: Daily at 2:00 AM CET
+- Incremental backup: Every 4 hours
+- Transaction log backup: Every 15 minutes (for point-in-time recovery)
+
+Documents:
+- Continuous backup (versioning enabled)
+- Snapshot: Daily
+
+Audit Logs:
+- Real-time replication to separate system
+- Daily full backup
+
+Configuration:
+- Version-controlled (Git)
+- Backed up with database
+```
+
+**Backup Retention**:
+- **Daily backups**: Keep for 30 days
+- **Weekly backups**: Keep for 12 weeks (3 months)
+- **Monthly backups**: Keep for 12 months
+- **Annual backups**: Keep for 10 years (malpractice statute of limitations)
+- **Critical deadlines**: Permanent retention
+
+**Backup Verification**:
+- **Automated restore test**: Weekly on staging environment
+- **Manual verification**: Monthly by operations team
+- **Integrity checks**: Daily (checksum verification)
+
+#### Disaster Recovery Plan
+
+**RTO and RPO Targets**:
+- **RTO** (Recovery Time Objective): **4 hours**
+  - Maximum time to restore service after disaster
+- **RPO** (Recovery Point Objective): **15 minutes**
+  - Maximum acceptable data loss
+
+**Disaster Scenarios**:
+
+1. **Database Failure**:
+   - **Detection**: Health check alerts within 1 minute
+   - **Action**: Automatic failover to read replica (promoted to primary)
+   - **Recovery Time**: 5-10 minutes
+   - **Data Loss**: 0 (synchronous replication) to 15 minutes (async replication)
+
+2. **Datacenter Outage**:
+   - **Detection**: Multi-region health checks
+   - **Action**: DNS failover to backup region
+   - **Recovery Time**: 30-60 minutes
+   - **Data Loss**: Up to 15 minutes (async replication)
+
+3. **Ransomware Attack**:
+   - **Detection**: Unusual file access patterns, encryption attempts
+   - **Action**: Isolate infected systems, restore from clean backup
+   - **Recovery Time**: 2-4 hours
+   - **Data Loss**: Up to 15 minutes (last backup)
+
+4. **Complete System Compromise**:
+   - **Action**: Restore from offline backups, rebuild infrastructure
+   - **Recovery Time**: 8-24 hours
+   - **Data Loss**: Up to 24 hours (daily offline backup)
+
+**Failover Architecture**:
+```
+Primary Datacenter (Frankfurt)
+├── Active-Active Database Cluster
+│   ├── Primary Node
+│   └── Replica Node (sync replication)
+└── Application Servers (N instances)
+
+Secondary Datacenter (Amsterdam) - Hot Standby
+├── Database Replica (async replication, 15min delay)
+└── Application Servers (standby, can activate in 30min)
+
+Offline Backups (Physical Location, Berlin)
+└── Encrypted backup tapes, monthly rotation
+```
+
+**DR Testing**:
+- **Quarterly**: Full disaster recovery drill
+- **Annually**: Complete datacenter failover test
+- **Documentation**: Updated DR playbook, contact lists
+
+### E. Access Control and Authentication
+
+#### Authentication Methods
+
+**Multi-Factor Authentication (MFA)**:
+- **Required for**: All users, no exceptions
+- **Methods**:
+  - Primary: Authenticator app (TOTP - Time-based One-Time Password)
+  - Backup: SMS codes (less secure but better than nothing)
+  - Advanced: Hardware keys (YubiKey, FIDO2)
+- **Enforcement**: Cannot disable MFA, even for admins
+
+**Password Requirements**:
+- **Minimum length**: 12 characters
+- **Complexity**:
+  - At least one uppercase letter
+  - At least one lowercase letter
+  - At least one number
+  - At least one special character
+- **No common passwords**: Check against breached password database (HIBP)
+- **No reuse**: Last 12 passwords remembered
+- **Expiration**: 90 days (configurable, some argue against expiration)
+
+**Single Sign-On (SSO)**:
+- **Protocol**: SAML 2.0 or OpenID Connect (OIDC)
+- **Providers**: Support Azure AD, Okta, Google Workspace, Auth0
+- **Benefit**: Integration with firm's existing identity provider
+
+**Session Management**:
+- **Session timeout**: 30 minutes of inactivity
+- **Absolute timeout**: 8 hours (require re-login)
+- **Concurrent sessions**: Allowed but logged
+- **Session hijacking prevention**: Secure, HttpOnly, SameSite cookies
+
+#### Authorization (Role-Based Access Control - RBAC)
+
+**Roles**:
+1. **System Admin**: Full system access (IT staff only)
+2. **Managing Partner**: View all firm data, manage users
+3. **Partner**: View own cases + supervised associates, manage own deadlines
+4. **Associate**: View own assigned cases, manage own deadlines
+5. **ReNo (Legal Assistant)**: Full deadline management for assigned lawyers
+6. **Secretary**: View deadlines, limited editing
+7. **Paralegal**: View only, no editing
+8. **Client (Portal)**: View own case deadlines only (if client portal enabled)
+
+**Permissions Matrix**: (Covered in Part 1.4.D, reference that)
+
+**Fine-Grained Access Control**:
+- **Case-level**: Permissions set per case
+- **Deadline-level**: Can restrict sensitive deadlines
+- **Document-level**: Separate permissions for court documents
+- **Field-level**: Can hide sensitive fields from certain roles
+
+**Attribute-Based Access Control (ABAC)** - Advanced:
+- **Dynamic permissions**: Based on context (time, location, device)
+- **Example**: "Allow access to case X only from office IP address"
+- **Example**: "Allow deadline editing only by assigned lawyer or their substitute"
+
+#### Audit Logging of Access
+
+**What to Log**:
+- **Authentication events**: Login, logout, failed attempts
+- **Authorization events**: Permission grants/revocals
+- **Data access**: Who viewed which deadline/case, when
+- **Data modification**: All creates, updates, deletes with before/after values
+- **Administrative actions**: User creation, role changes, system config
+- **Suspicious activity**: Multiple failed logins, unusual access patterns
+
+**Log Format** (JSON for parsing):
+```json
+{
+  "timestamp": "2025-03-15T14:23:45.123Z",
+  "event_type": "data_access",
+  "user_id": "ra_mueller_12345",
+  "user_email": "mueller@kanzlei.de",
+  "resource_type": "deadline",
+  "resource_id": "deadline_67890",
+  "action": "view",
+  "ip_address": "192.168.1.50",
+  "user_agent": "Mozilla/5.0...",
+  "success": true,
+  "details": {
+    "case_id": "12_O_456_24",
+    "court": "AG München"
+  }
+}
+```
+
+**Log Retention**: 10 years (malpractice statute of limitations)
+**Log Storage**: Separate, tamper-proof audit log database
+**Log Analysis**: SIEM system (Security Information and Event Management) for anomaly detection
+
+## 2.3 Performance Requirements
+
+### A. Response Time Requirements
+
+**User-Facing Operations**:
+
+| Operation | Target | Maximum | Notes |
+|-----------|--------|---------|-------|
+| Page load | < 1 second | 3 seconds | Initial page load |
+| Deadline list view | < 500ms | 1 second | List of 100 deadlines |
+| Deadline detail view | < 300ms | 1 second | Single deadline |
+| Deadline calculation | < 100ms | 500ms | Single calculation |
+| Batch calculation | < 5 seconds | 15 seconds | 100 calculations |
+| Search (deadlines) | < 1 second | 3 seconds | Search across all deadlines |
+| Document upload | N/A | 30 seconds | 10 MB PDF |
+| Document processing (OCR) | N/A | 2 minutes | 10-page PDF |
+| beA message check | N/A | 30 seconds | Background task |
+| Calendar sync | < 2 seconds | 5 seconds | Bi-directional |
+| Report generation | < 5 seconds | 30 seconds | Standard reports |
+| Export to PDF | < 3 seconds | 10 seconds | Deadline report |
+
+**Background Tasks**:
+- **beA polling**: Every 15 minutes, complete in < 2 minutes
+- **Email monitoring**: Every 30 minutes, complete in < 5 minutes
+- **Reminder sending**: Daily at configured time, complete in < 30 minutes for 10,000 users
+- **Backup**: Daily at 2 AM, complete in < 2 hours
+
+### B. Scalability Requirements
+
+#### Concurrent Users
+**MVP Target**:
+- **10 concurrent users** per law firm (small firm)
+- **Platform total**: 100 firms × 10 users = 1,000 concurrent users
+
+**Growth Target (Year 2)**:
+- **50 concurrent users** per firm (medium firm)
+- **Platform total**: 500 firms × 50 users = 25,000 concurrent users
+
+**Enterprise Target (Year 5)**:
+- **500 concurrent users** (large firm)
+- **Platform total**: 5,000 firms = 100,000 concurrent users
+
+#### Data Volume
+**Deadlines**:
+- **Per lawyer**: 50 active deadlines at any time
+- **Per firm (10 lawyers)**: 500 active deadlines
+- **Per firm (annually)**: 5,000 deadlines created/completed
+- **Platform (1,000 firms)**: 5 million deadlines per year
+- **5-year total**: 25 million deadlines
+
+**Documents**:
+- **Per deadline**: 3 documents average (judgment, correspondence, calculation)
+- **Average document size**: 500 KB
+- **Annual storage per firm**: 5,000 deadlines × 3 docs × 500 KB = 7.5 GB
+- **Platform annual storage**: 1,000 firms × 7.5 GB = 7.5 TB
+- **5-year storage**: 37.5 TB
+
+**Database Size Projections**:
+- **Year 1**: 500 GB
+- **Year 2**: 2 TB
+- **Year 5**: 10 TB
+
+#### Scaling Strategy
+**Horizontal Scaling** (Preferred):
+- **Application servers**: Add more pods/instances
+- **Load balancer**: Distribute traffic
+- **Database**: Read replicas for queries
+- **Document storage**: S3 auto-scales
+
+**Vertical Scaling** (Database):
+- **Increase CPU/RAM** of database server as needed
+- **SSD storage**: Fast I/O for large databases
+
+**Database Sharding** (Future):
+- **Shard by firm_id**: Each firm's data on separate database
+- **Benefit**: Isolate tenants, scale independently
+- **Complexity**: More complex queries across firms
+
+### C. Uptime Requirements
+
+**Target SLA**: **99.9% uptime** (8.77 hours downtime per year)
+- **Acceptable**: For MVP and small/medium firms
+- **Calculation**: 365 days × 24 hours × 0.999 = 8,751.24 hours uptime
+
+**Stretch Goal**: **99.99% uptime** (52.6 minutes downtime per year)
+- **For enterprise clients**: Large firms with critical dependence
+
+**Planned Maintenance**:
+- **Frequency**: Monthly
+- **Window**: Saturday 2:00 AM - 6:00 AM CET (low usage time)
+- **Duration**: < 2 hours
+- **Advance notice**: 7 days
+
+**Unplanned Downtime**:
+- **Mean Time To Detect** (MTTD): < 5 minutes
+- **Mean Time To Resolve** (MTTR): < 60 minutes
+- **Automated recovery**: Where possible (restart services, failover DB)
+
+**Monitoring**:
+- **Health checks**: Every 30 seconds
+- **Uptime monitoring**: Third-party service (StatusPage, Pingdom)
+- **Alerting**: PagerDuty or similar, 24/7 on-call rotation
+
+### D. Peak Usage Patterns
+
+**Daily Patterns**:
+```
+00:00 - 08:00: Low usage (5% of daily traffic)
+08:00 - 10:00: Morning peak (25% of daily traffic)
+  - Lawyers check beA, review overnight communications
+  - Highest deadline creation rate
+10:00 - 12:00: Moderate usage (15%)
+12:00 - 14:00: Lunch dip (10%)
+14:00 - 17:00: Afternoon peak (30%)
+  - Filing deadlines before end of business day
+  - Document preparation
+17:00 - 00:00: Evening taper (15%)
+```
+
+**Weekly Patterns**:
+- **Monday**: 25% of weekly traffic (catch-up from weekend)
+- **Tuesday-Thursday**: 20% each day
+- **Friday**: 15% (many lawyers leave early)
+- **Saturday-Sunday**: <5% (emergency filings only)
+
+**Monthly Patterns**:
+- **Month-end**: 40% increase in traffic
+  - Many deadlines calculated in months, cluster at month-end
+  - Firms clearing backlogs before month close
+- **First week of month**: High filing activity
+
+**Seasonal Patterns**:
+- **July-August**: 30% decrease (summer, § 227 Abs. 3 ZPO postponements)
+- **December**: 20% decrease (Christmas, New Year)
+- **January, September**: Spikes (post-holiday catch-up)
+
+**Capacity Planning**:
+- **Baseline capacity**: Average usage
+- **Auto-scaling**: Kick in at 70% capacity
+- **Peak capacity**: 3x baseline (handle month-end + Monday morning)
+
+### E. Mobile vs. Desktop Usage Expectations
+
+**Usage Split** (Estimated):
+- **Desktop**: 70% of usage
+  - Primary work device
+  - Complex tasks (deadline creation, document review)
+  - Full-featured interface
+- **Mobile**: 25% of usage
+  - Quick checks (view deadlines)
+  - Notifications and alerts
+  - Read beA messages on the go
+  - Simplified interface
+- **Tablet**: 5% of usage
+  - Hybrid usage patterns
+
+**Mobile-Specific Requirements**:
+- **Responsive web**: Must work on mobile browsers
+- **Native apps**: iOS + Android (Phase 2)
+- **Offline mode**: Limited (view cached deadlines, create offline, sync later)
+- **Push notifications**: Critical for mobile users
+- **Reduced bandwidth**: Optimize for slower connections
+- **Touch-friendly UI**: Large buttons, no hover states
+
+**Desktop-Specific Requirements**:
+- **Keyboard shortcuts**: Power users
+- **Multi-window**: Open multiple deadlines simultaneously
+- **Advanced features**: Bulk operations, reporting, admin functions
+- **Integration**: Deep integration with desktop apps (Outlook add-in)
+
+## 2.4 Integration Specifications
+
+### A. beA Integration Details
+
+**(Covered extensively in Part 1.3.A, cross-reference)**
+
+**Additional Technical Specs**:
+
+**API Access Requirements**:
+- **Registration**: Apply to BRAK for KSW interface access
+- **Credentials**:
+  - Application ID
+  - API key
+  - Client certificate
+- **Environment**:
+  - **Test**: test-bea.brak.de
+  - **Production**: bea.brak.de
+
+**Message Polling Strategy**:
+```python
+# Pseudocode
+every 15 minutes:
+    for each firm with beA enabled:
+        authenticate(firm.bea_certificate)
+        messages = fetch_new_messages()
+        for message in messages:
+            extract_metadata(message)
+            download_attachments(message)
+            if contains_deadline:
+                trigger_document_processing(message)
+                create_deadline_draft(message)
+                notify_assigned_lawyer(message)
+            archive_message(message)
+```
+
+**Error Handling**:
+- **beA unavailable**: Retry with exponential backoff (2min, 4min, 8min, 16min, 30min)
+- **Certificate expired**: Alert office manager immediately (Level 5 escalation)
+- **Invalid message format**: Log error, flag for manual review
+- **Attachment parsing failure**: Flag for manual processing, don't fail silently
+
+### B. Calendar Integration Specifications
+
+#### Microsoft Outlook/Exchange Integration
+
+**API**: Microsoft Graph API
+**Authentication**: OAuth 2.0 with delegated permissions
+**Permissions Required**:
+- `Calendars.ReadWrite` (read and write calendar events)
+- `User.Read` (basic user profile)
+
+**Sync Strategy**:
+- **Initial sync**: Import all existing calendar events (optional)
+- **Ongoing sync**: Webhook subscriptions for real-time updates
+- **Bi-directional**:
+  - System deadline → Outlook event (created automatically)
+  - Outlook event modification → Update system deadline (if user edits)
+  - Deletion sync (with confirmation)
+
+**Conflict Resolution**:
+- **System is source of truth** for deadline dates (calculated, can't be changed arbitrarily)
+- **User can edit**: Title, description, reminders
+- **If user changes date in Outlook**: System alerts, offers to recalculate or marks as manual override
+
+**Event Format**:
+```json
+{
+  "subject": "[FRIST] Berufung einlegen - 12 O 456/24",
+  "start": {
+    "dateTime": "2025-04-15T00:00:00",
+    "timeZone": "Europe/Berlin"
+  },
+  "end": {
+    "dateTime": "2025-04-15T23:59:59",
+    "timeZone": "Europe/Berlin"
+  },
+  "isAllDayEvent": true,
+  "body": {
+    "contentType": "HTML",
+    "content": "<html>...</html>"
+  },
+  "categories": ["Notfrist", "AG München"],
+  "sensitivity": "confidential",
+  "showAs": "busy",
+  "reminders": {
+    "isReminderOn": true,
+    "reminderMinutesBeforeStart": 10080
+  }
+}
+```
+
+#### Google Calendar Integration
+
+**API**: Google Calendar API v3
+**Authentication**: OAuth 2.0
+**Scopes Required**:
+- `https://www.googleapis.com/auth/calendar.events` (read/write events)
+
+**Similar to Outlook**: Sync strategy, conflict resolution same principles
+
+#### CalDAV Integration
+
+**Protocol**: CalDAV (RFC 4791)
+**Use Case**: Apple Calendar, Thunderbird, other standards-compliant clients
+**Authentication**: Basic auth or OAuth
+**Sync**: Polling-based (every 15 minutes) or push notifications if supported
+
+### C. Document Management System Integration
+
+#### RA-MICRO Integration
+
+**Challenges**:
+- Proprietary, closed system
+- No public API
+- Must work through RA-MICRO's integration partners or custom development
+
+**Integration Options**:
+1. **File-based**: Export/import via CSV files
+   - RA-MICRO exports deadline list
+   - System imports, adds value, exports back
+   - **Limitation**: Not real-time, manual process
+
+2. **Database-level**: Direct connection to RA-MICRO database (if allowed)
+   - **Risk**: Bypass application logic, data integrity issues
+   - **Requires**: RA-MICRO vendor agreement
+
+3. **RA-MICRO API** (if available to certified partners):
+   - **Apply**: Become RA-MICRO integration partner
+   - **Access**: Proprietary API documentation
+   - **Best option**: Real-time, supported integration
+
+**MVP Approach**: File-based export/import with semi-automated workflow
+
+#### DATEV Integration
+
+**Similar challenges** to RA-MICRO: Proprietary system
+**DATEV Connect**: DATEV's API platform (OAuth-based)
+**Available APIs**:
+- Document management
+- Calendar integration
+- Some case management
+
+**MVP Approach**: Calendar sync via DATEV Connect, expand as APIs become available
+
+#### Generic DMS Integration
+
+**For other systems**:
+- **WebDAV**: File access protocol
+- **REST APIs**: Where vendor provides
+- **CMIS** (Content Management Interoperability Services): Standard for ECM systems
+
+### D. Time Tracking & Billing Integration
+
+**Purpose**: Link deadline work to billable time
+
+**Integration Points**:
+1. **Time entry creation**:
+   - Click "Log time" on deadline
+   - Pre-populate: Case, matter, task description
+   - User enters: Hours, rate, notes
+   - Submit to time tracking system
+
+2. **Automatic time suggestions**:
+   - System tracks time spent on deadline tasks
+   - Suggests time entries based on activity
+   - User confirms/edits before submitting
+
+**APIs**:
+- **RA-MICRO Zeit**: Via RA-MICRO API (if available)
+- **DATEV Zeiterfassung**: Via DATEV Connect
+- **Generic**: Support standard time tracking APIs (Toggl, Harvest, etc.)
+
+### E. Notification Channels
+
+#### Email
+**Provider**: SendGrid, Amazon SES, or Postmark
+**Requirements**:
+- **SPF/DKIM/DMARC**: Proper email authentication
+- **Template engine**: HTML email templates
+- **Unsubscribe**: Required for non-critical emails (GDPR)
+- **Delivery tracking**: Open rates, bounce handling
+
+**Email Types**:
+- Deadline reminders
+- Escalation alerts
+- Daily digest
+- Near-miss reports
+- System notifications
+
+#### SMS
+**Provider**: Twilio, Vonage, or local German provider
+**Use Cases**:
+- Critical deadlines (< 24 hours)
+- Level 4+ escalations
+- MFA codes
+
+**Cost Consideration**: SMS costs per message, offer as premium feature or for critical only
+
+#### Push Notifications
+**Mobile Apps**:
+- **iOS**: Apple Push Notification Service (APNS)
+- **Android**: Firebase Cloud Messaging (FCM)
+
+**Web Push**:
+- **Standard**: Web Push API
+- **Browser support**: Chrome, Firefox, Edge, Safari 16+
+
+**Notification Types**:
+- New deadline assigned
+- Deadline approaching (configurable thresholds)
+- beA message received
+- Escalation alerts
+
+#### In-App Notifications
+**Notification Center**: Within application
+- **Bell icon**: Shows unread count
+- **Dropdown**: Lists recent notifications
+- **Mark as read**: User acknowledgment
+- **Action buttons**: "View deadline", "Dismiss", etc.
+
+**Real-Time**: WebSockets or Server-Sent Events (SSE) for instant notifications
+
+### F. API for Third-Party Integrations
+
+**Public API**: RESTful API for external integrations
+
+**Authentication**:
+- **OAuth 2.0**: For user-facing integrations
+- **API Keys**: For server-to-server integrations
+
+**Rate Limiting**:
+- **Free tier**: 100 requests/hour
+- **Paid tier**: 1,000 requests/hour
+- **Enterprise**: 10,000 requests/hour or custom
+
+**API Endpoints**:
+```
+GET    /api/v1/deadlines               # List deadlines
+POST   /api/v1/deadlines               # Create deadline
+GET    /api/v1/deadlines/:id           # Get deadline details
+PUT    /api/v1/deadlines/:id           # Update deadline
+DELETE /api/v1/deadlines/:id           # Delete deadline
+GET    /api/v1/deadlines/:id/calculate # Recalculate deadline
+POST   /api/v1/deadlines/:id/delegate  # Delegate deadline
+GET    /api/v1/cases                   # List cases
+GET    /api/v1/courts                  # List courts
+GET    /api/v1/holidays                # Get holiday calendar
+POST   /api/v1/documents/parse         # Parse document for deadlines
+```
+
+**Documentation**: OpenAPI (Swagger) specification, auto-generated docs
+
+**Webhooks**: Allow external systems to subscribe to events
+- `deadline.created`
+- `deadline.approaching`
+- `deadline.completed`
+- `deadline.missed`
 
 ---
 
