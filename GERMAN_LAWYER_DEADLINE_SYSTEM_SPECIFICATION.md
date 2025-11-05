@@ -982,7 +982,517 @@ The system must:
 
 ## 1.3 Integration Nightmares
 
-*[To be completed]*
+### A. beA (Besonderes Elektronisches Anwaltspostfach) Integration
+
+#### Overview
+**beA** is the mandatory electronic mailbox system for lawyers in Germany, built on EGVP infrastructure. As of 2022, lawyers MUST use beA for electronic filing with courts in civil matters.
+
+#### Legal Mandate
+- **§ 130d ZPO**: Electronic documents from lawyers must be transmitted via beA
+- **Professional obligation**: All lawyers registered with a Rechtsanwaltskammer must have active beA
+- **Mandatory since**: January 1, 2022 (after multiple delays from original 2018 deadline)
+
+#### Technical Architecture
+
+**1. Authentication & Security**:
+- **OSCI (Online Services Computer Interface)** transport protocol
+- **Dual encryption**: Transport layer + end-to-end encryption
+- **Qualified electronic signature** (qualifizierte elektronische Signatur - QES) required for submissions
+- **Two-factor authentication** for mailbox access
+- **Smart card or USB token** with certificates required
+
+**2. Certificate Management**:
+- **beA card** with RFID chip containing certificates
+- **Card reader** required (Class 2 or higher)
+- **Certificate validity**: Typically 3 years
+- **Renewal process**: Must be managed proactively to avoid filing interruptions
+- **Certificate store**: Separate from regular TLS/SSL certificates
+
+**3. Access Methods**:
+- **beA Web Client**: Browser-based access via bea-brak.de
+- **beA Client Security** (formerly safe): Desktop application
+- **KSW Interface** (Kanzleisoftwareschnittstelle): API for law firm software integration
+- **beA Apps**: Mobile applications (iOS, Android) for viewing/reading
+
+#### Integration Challenges
+
+**1. KSW API Limitations**:
+- **Restricted access**: BRAK (Bundesrechtsanwaltskammer) restricts API access to certified software vendors
+- **Registration required**: Must apply to BRAK with subject "Zugang zur KSW-Schnittstelle"
+- **No public documentation**: API specs not publicly available
+- **Version updates**: KSW interface currently at version 5+ with breaking changes
+- **Testing environment**: Separate test system required before production access
+
+**2. Technical Integration Problems**:
+- **Java dependency**: Historical reliance on Java Runtime Environment
+- **Certificate handling**: Complex PKCS#11 token integration
+- **OSCI complexity**: Non-standard protocol, not REST or SOAP
+- **Message formats**: Specific XML schemas required (XJustiz standards)
+- **File size limits**: Typically 50-100 MB per message
+- **Attachment handling**: Specific file type restrictions
+
+**3. Deadline Extraction from beA Messages**:
+
+**Critical Fields in beA Messages**:
+```xml
+<Zustellung>
+  <Zustellungsdatum>2025-03-15T14:23:45+01:00</Zustellungsdatum>
+  <Aktenzeichen>12 O 456/24</Aktenzeichen>
+  <Gericht>AG München</Gericht>
+</Zustellung>
+```
+
+**Challenges**:
+- **Timestamp precision**: Exact delivery time down to the second
+- **Multiple attachments**: May contain judgment + Rechtsmittelbelehrung + other docs
+- **Nested PDFs**: Court documents embedded within message structure
+- **Metadata extraction**: Court file number, court name, document type
+- **No standardized deadline field**: Deadlines must be calculated from document content, not metadata
+
+**4. Document Format Issues**:
+- **PDF/A requirement**: Courts require PDF/A-1b or PDF/A-2b format
+- **Signature placement**: QES must be properly embedded
+- **OCR requirement**: Scanned documents may not be searchable
+- **Form fill-out**: Some forms must be filled electronically, not scanned
+
+**5. System Reliability Concerns**:
+- **Historical outages**: beA experienced significant downtime (2017 security issue, 2018 delays)
+- **Maintenance windows**: Scheduled maintenance affects filing ability
+- **No SLA guarantees**: BRAK provides no guaranteed uptime percentage
+- **Fallback procedures**: Paper filing may be necessary if beA unavailable near deadline
+- **Status verification**: Must confirm successful delivery, not just sending
+
+**6. Deadline-Critical beA Integration Requirements**:
+
+**Must Extract**:
+1. **Delivery timestamp**: Exact moment message placed in mailbox
+2. **Sender identification**: Court name and file number
+3. **Document type**: Urteil, Beschluss, Verfügung, Ladung, etc.
+4. **Attachments**: All PDFs including Rechtsmittelbelehrung (legal remedy instructions)
+5. **Read confirmation**: Track when message was opened (affects certain deadlines)
+
+**Must Calculate**:
+1. Deadline start date (day after delivery per § 187 BGB)
+2. Applicable procedural code (from court type)
+3. Deadline duration (from document type and legal remedy instructions)
+4. Court location (for holiday calendar)
+5. Final deadline with § 193 BGB extensions
+
+**Must Handle**:
+1. **Automated polling**: Check beA mailbox multiple times daily
+2. **Delivery notifications**: Immediate alert when court message arrives
+3. **Attachment processing**: Automatically extract and parse all PDFs
+4. **Duplicate detection**: Same message may arrive multiple ways
+5. **Archive compliance**: Store beA messages with full metadata for audit trail
+
+### B. EGVP (Elektronisches Gerichts- und Verwaltungspostfach) Integration
+
+#### Overview
+**EGVP** is the broader electronic communication infrastructure for courts and authorities. beA is built on EGVP technology but is specific to lawyers.
+
+#### History & Evolution
+- **Launched**: 2004 as general court/administration communication system
+- **EGVP Citizen Client**: Shut down October 4, 2018
+- **Replaced by specialized mailboxes**:
+  - **beA** (Lawyers) - 2018+
+  - **beN** (Notaries) - 2018+
+  - **beBPo** (Authorities) - Ongoing
+
+#### Technical Foundation
+- **OSCI protocol**: Same as beA
+- **Governikus Communicator**: Reference implementation (formerly free, now requires paid OSCI software)
+- **Double encryption**: Transport + end-to-end
+- **Certificate-based**: Similar PKI infrastructure to beA
+
+#### Integration Differences from beA
+
+**1. EGVP for Non-Lawyer Parties**:
+- Some parties may send via EGVP instead of beA
+- Different message formats and schemas
+- May require separate integration code
+
+**2. Authority Communications**:
+- Administrative authorities use beBPo (special authority mailbox)
+- Tax authorities (Finanzamt) use ELSTER system instead
+- Mixed communication channels complicate tracking
+
+**3. Legacy Compatibility**:
+- Older EGVP messages may use different schemas
+- Historical messages (pre-2018) follow different standards
+- Backward compatibility issues with modern systems
+
+#### Deadline Extraction Challenges
+- **No standardization**: Each court/authority may format messages differently
+- **Manual elements**: Some fields hand-typed by court staff (typos, inconsistencies)
+- **Missing metadata**: Older EGVP messages lack structured deadline information
+- **Multiple delivery methods**: Same document might arrive via beA, EGVP, and postal mail
+
+### C. Document Extraction Requirements
+
+#### 1. Extracting Deadlines from PDF Court Documents
+
+**Common Court Document Types Containing Deadlines**:
+
+**A. Urteile (Judgments)**:
+- **Location of deadline info**: Final paragraph or Rechtsmittelbelehrung section
+- **Typical text patterns**:
+  - "Die Berufung ist binnen einer Frist von einem Monat einzulegen"
+  - "Die Revision ist binnen eines Monats nach Zustellung einzulegen"
+  - "Gegen dieses Urteil ist das Rechtsmittel der Berufung gegeben"
+
+**Example Text to Parse**:
+```
+Rechtsmittelbelehrung
+
+Gegen dieses Urteil kann Berufung eingelegt werden. Die Berufung ist
+binnen einer Frist von einem Monat nach Zustellung des vollständigen
+Urteils bei dem Landgericht München I, Prielmayerstraße 7, 80335 München,
+schriftlich einzulegen.
+
+Die Berufungsfrist ist auch gewahrt, wenn die Berufung innerhalb der
+Frist bei dem Amtsgericht München, Pacellistraße 5, 80333 München,
+eingereicht wird.
+```
+
+**Extraction Requirements**:
+- Identify: "Berufung" (appeal type)
+- Extract: "einem Monat" (one month duration)
+- Extract: "nach Zustellung" (after service - triggering event)
+- Extract: Court name "Landgericht München I"
+- Calculate: Service date + 1 month deadline
+
+**B. Beschlüsse (Orders/Decisions)**:
+- May have immediate effect (sofort vollstreckbar)
+- Sofortige Beschwerde may have shorter deadlines
+- Legal remedy instructions at end
+
+**C. Verfügungen (Court Orders)**:
+- Often set deadlines for submissions
+- "Frist zur Stellungnahme: bis 15.04.2025"
+- May be richterliche Fristen (extendable) vs. Notfristen
+
+**D. Ladungen (Summons)**:
+- Hearing dates (not filing deadlines)
+- May trigger other deadlines (respond before hearing)
+- Track as milestone, not true deadline
+
+#### 2. OCR and Text Recognition Challenges
+
+**Problems**:
+- **Scanned judgments**: Many courts scan paper documents
+- **Poor scan quality**: Faded text, skewed pages, noise
+- **Handwritten annotations**: Judges may add handwritten notes
+- **Multi-column layouts**: Some courts use complex formatting
+- **Tables and forms**: Structured data difficult to extract
+- **Signatures and stamps**: Overlay text, complicate OCR
+- **Fax artifacts**: If document was faxed, quality degraded
+
+**Technical Requirements**:
+- **OCR Engine**: Tesseract, ABBYY, AWS Textract, or Google Vision
+- **Preprocessing**: Deskew, denoise, binarize images
+- **Language model**: German legal terminology dictionary
+- **Layout analysis**: Understand document structure
+- **Confidence scoring**: Know when OCR is unreliable
+- **Manual review flag**: Human verification for low-confidence extractions
+
+#### 3. Natural Language Processing Requirements
+
+**German Legal Language Challenges**:
+
+**A. Complex Sentence Structure**:
+- Long compound sentences (Schachtelsätze)
+- Multiple subordinate clauses
+- Legal terminology embedded mid-sentence
+
+**B. Deadline Phrase Variations**:
+```
+"binnen einer Frist von einem Monat"
+"innerhalb eines Monats"
+"innerhalb einer Monatsfrist"
+"in einer Frist von einem Monat"
+"bis zum Ablauf eines Monats"
+"spätestens binnen Monatsfrist"
+```
+
+All mean: "within one month" but with slight variations
+
+**C. Conditional Deadlines**:
+```
+"Soweit eine Berufung statthaft ist, kann diese binnen eines Monats..."
+```
+"If an appeal is admissible, it can be filed within one month..."
+
+Must parse: IF appeal allowed THEN deadline applies
+
+**D. Multiple Deadlines in One Document**:
+- Berufung einlegen (file appeal): 1 month
+- Berufung begründen (justify appeal): Additional time after filing
+- Must extract BOTH deadlines and their relationship
+
+**E. Negative Statements**:
+```
+"Gegen diese Entscheidung ist ein Rechtsmittel nicht gegeben."
+```
+"No legal remedy is available against this decision."
+
+Must recognize: NO deadline applies (case closed)
+
+#### 4. NLP/AI Extraction Pipeline
+
+**Recommended Architecture**:
+
+**Stage 1: Document Classification**
+- Input: PDF document
+- Output: Document type (Urteil, Beschluss, Verfügung, Ladung, Sonstiges)
+- Technology: Document classifier (ML model or rule-based)
+
+**Stage 2: Text Extraction**
+- Input: PDF
+- Output: Plain text with layout preservation
+- Technology: OCR if scanned, direct text extraction if digital
+- Libraries: PyPDF2, pdfplumber, OCR engines
+
+**Stage 3: Section Identification**
+- Input: Full text
+- Output: Isolated Rechtsmittelbelehrung section
+- Technology: Pattern matching, section headers, keywords
+- Patterns: "Rechtsmittelbelehrung", "Berufung", "Revision", "Beschwerde"
+
+**Stage 4: Named Entity Recognition (NER)**
+- Input: Rechtsmittelbelehrung text
+- Output: Entities
+  - Remedy type: "Berufung", "Revision"
+  - Duration: "einem Monat", "zwei Wochen"
+  - Triggering event: "nach Zustellung", "ab Bekanntgabe"
+  - Court: "Landgericht München I"
+- Technology: spaCy with custom German legal NER model, or GPT-based extraction
+
+**Stage 5: Deadline Calculation**
+- Input: Extracted entities + service date
+- Output: Calculated deadline date
+- Technology: Custom calculation engine following § 187-193 BGB rules
+
+**Stage 6: Confidence Scoring**
+- Input: All extracted information
+- Output: Confidence score (0-100%)
+- Rules:
+  - 100%: Digital PDF, clear structured text, all entities found
+  - 70-99%: OCR required, entities found but some ambiguity
+  - <70%: Poor quality, missing key information → Flag for manual review
+
+**Stage 7: Human Review Queue**
+- Input: Low confidence extractions
+- Output: Human-verified deadline
+- UI: Present original document + extracted information for attorney review
+
+#### 5. Email Parsing for Court Communications
+
+**Challenges**:
+- **Not all courts use beA**: Some still send email notifications
+- **Informal communications**: Court clerk emails may contain deadline info
+- **No standard format**: Each court formats emails differently
+- **Attachments**: Deadline info may be in attachment, not email body
+- **Follow-up communications**: Email chains complicate parsing
+
+**Requirements**:
+- **Email monitoring**: IMAP/POP3 integration with law firm email
+- **Sender whitelisting**: Recognize official court email addresses
+- **Attachment processing**: Extract and analyze PDFs from emails
+- **Thread tracking**: Associate emails with existing cases
+- **Spam protection**: Distinguish legitimate court emails from phishing
+
+**Common Court Email Patterns**:
+```
+From: ag-muenchen-poststelle@justiz.bayern.de
+Subject: 12 C 456/24 - Terminsänderung
+Betreff: Verfahren 12 C 456/24
+Der Termin zur mündlichen Verhandlung wird verlegt auf den 15.05.2025, 10:00 Uhr.
+```
+
+Must extract: Case number, new hearing date
+
+#### 6. Scanned/Paper Document Processing
+
+**Physical Mail Handling**:
+- Law firms still receive paper mail from courts (especially criminal matters)
+- Must be scanned into system
+- OCR required for searchable text
+- Manual data entry backup when OCR fails
+
+**Scanning Workflow**:
+1. **Physical receipt**: Mail arrives at office
+2. **Date stamping**: Record receipt date (critical for service-by-mail deadlines)
+3. **Scanning**: High-quality scan (minimum 300 DPI, preferably 600 DPI)
+4. **OCR processing**: Convert to searchable PDF
+5. **Metadata tagging**: Add case number, document type, date
+6. **Archive**: Store physical document per retention requirements
+7. **System entry**: Extract deadlines and add to deadline management system
+
+**Quality Requirements**:
+- **Minimum resolution**: 300 DPI for text documents
+- **Color vs. B&W**: Color for documents with stamps/signatures, B&W acceptable for text-only
+- **PDF/A format**: For long-term archival
+- **Searchable PDF**: Always perform OCR, don't store image-only PDFs
+
+#### 7. Document Format Compatibility
+
+**Input Formats the System Must Handle**:
+- ✅ **PDF** (most common): PDF/A-1b, PDF/A-2b, regular PDF
+- ✅ **DOCX/DOC**: Some court communications (rare)
+- ✅ **TIF/TIFF**: Scanned documents (especially faxes)
+- ✅ **JPG/PNG**: Photos of documents (worst case)
+- ✅ **XML**: Structured court data (XJustiz format)
+- ✅ **Email formats**: .eml, .msg files
+- ❌ **Paper**: Requires scanning first
+
+**Output Formats for Court Filing**:
+- ✅ **PDF/A**: Mandatory for beA submissions
+- ✅ **Qualified signature**: Embedded QES in PDF
+- ✅ **XJustiz XML**: For structured data submissions
+
+### D. Integration with Existing Law Firm Systems
+
+#### 1. Calendar Systems
+
+**Must Integrate With**:
+- **Microsoft Outlook/Exchange**: Most common in German law firms
+- **Google Calendar**: Some modern firms
+- **Apple Calendar**: Solo practitioners
+- **DATEV Calendar**: For firms using DATEV Anwalt classic
+- **RA-MICRO Calendar**: For firms using RA-MICRO
+
+**Integration Requirements**:
+- **Bi-directional sync**: Deadlines ↔ calendar events
+- **Conflict detection**: Warn if multiple deadlines same day
+- **Automatic updates**: If deadline changes, update calendar
+- **Color coding**: Different colors for deadline types (Notfrist = red, etc.)
+- **Reminders**: Multiple reminders (1 week, 3 days, 1 day, morning of)
+- **Attendee management**: Assign deadlines to specific lawyers
+
+**Calendar Event Format**:
+```
+Title: [FRIST] Berufung einlegen - 12 C 456/24
+Start: 2025-04-15 (all-day event)
+End: 2025-04-15
+Location: Landgericht München I
+Description:
+- Aktenzeichen: 12 C 456/24
+- Gericht: Landgericht München I
+- Fristende: 15.04.2025, 24:00 Uhr
+- Berechnung: Urteil zugestellt am 15.03.2025, 1 Monat Frist
+- Notfrist: JA - NICHT VERLÄNGERBAR
+- Verantwortlich: RA Müller
+- Vertreter: RA Schmidt
+```
+
+#### 2. Document Management Systems (DMS)
+
+**Common German Law Firm DMS**:
+- **RA-MICRO**: Market leader
+- **DATEV**: Major provider
+- **ActaPort**: Alternative
+- **nscale/d.velop**: ECM systems
+- **DocuWare**: Document management
+- **Windows file shares**: Still used by small firms
+
+**Integration Points**:
+- **Automatic filing**: beA messages auto-saved to case folder
+- **Linking**: Deadlines linked to source documents
+- **Search**: Find all deadlines related to a document
+- **Version control**: Track document versions with deadline implications
+- **Access control**: Permissions for who can see/edit deadlines
+
+#### 3. Time Tracking & Billing Systems
+
+**Integration Purpose**:
+- Track time spent on deadline-related work
+- Bill clients for deadline management
+- Report on deadline-related activities
+
+**Common Systems**:
+- RA-MICRO Zeit (time tracking module)
+- DATEV Zeiterfassung
+- Standalone time tracking tools
+
+**Requirements**:
+- Link time entries to specific deadlines
+- Pre-populate task descriptions with deadline info
+- Report: Hours spent on deadline compliance per case/client
+
+#### 4. Case Management Systems
+
+**Full Practice Management Suites**:
+- RA-MICRO (complete system)
+- DATEV Anwalt classic
+- LawFirm (by Wolters Kluwer)
+- ActaPort
+
+**Integration Requirements**:
+- **Case-deadline association**: Every deadline belongs to a case/matter
+- **Party information**: Track clients, opponents, courts
+- **Document association**: Link deadlines to pleadings, judgments
+- **Status tracking**: Mark deadlines as completed, pending, at-risk
+- **Reporting**: Deadline reports per case, per client, per lawyer
+
+#### 5. beA Integration Summary - Critical Requirements
+
+**For MVP/Core Functionality**:
+
+| Requirement | Priority | Complexity | Notes |
+|-------------|----------|------------|-------|
+| beA message polling | CRITICAL | High | KSW API access required |
+| Timestamp extraction | CRITICAL | Medium | Exact delivery time |
+| PDF attachment extraction | CRITICAL | Medium | Multiple attachments per message |
+| OCR for scanned docs | HIGH | High | Many courts still scan |
+| Rechtsmittelbelehrung parsing | CRITICAL | High | Core deadline extraction |
+| Court identification | CRITICAL | Medium | Map to holiday calendar |
+| Deadline calculation | CRITICAL | High | § 187-193 BGB compliance |
+| Calendar integration | HIGH | Medium | Outlook most important |
+| Manual review queue | HIGH | Low | For low-confidence extractions |
+| Audit trail | HIGH | Medium | DSGVO/malpractice insurance |
+| Fallback to paper | MEDIUM | Low | When beA unavailable |
+| Email monitoring | MEDIUM | Medium | Not all courts use beA |
+
+### E. API and Integration Specifications Needed
+
+**From External Providers**:
+
+1. **BRAK (for beA access)**:
+   - KSW interface documentation (restricted)
+   - Test environment access
+   - Production credentials
+   - Support contact for integration issues
+
+2. **Court Systems**:
+   - No centralized API (each court independent)
+   - Must handle ~900 different court contact methods
+   - No standard for electronic communication formats
+
+3. **Calendar Providers**:
+   - Microsoft Graph API (for Office 365/Outlook)
+   - Google Calendar API
+   - CalDAV (for Apple Calendar, others)
+
+4. **DMS/Practice Management**:
+   - RA-MICRO API (if available - typically closed)
+   - DATEV integration points
+   - Often requires custom development per system
+
+### F. Data Format Standards
+
+**XJustiz**: XML-based standard for German justice system
+- **Purpose**: Structured data exchange between courts and parties
+- **Scope**: Case data, documents, deadlines, parties, etc.
+- **Versions**: Multiple versions, courts use different versions
+- **Documentation**: Available from xjustiz.de
+- **Complexity**: Very complex schema, hundreds of elements
+- **Adoption**: Growing but not universal
+
+**OSCI**: Online Services Computer Interface
+- **Purpose**: Secure transport protocol
+- **Use case**: beA, EGVP communication
+- **Complexity**: Non-standard, requires specialized libraries
+- **Documentation**: Available from governikus.de
 
 ## 1.4 Team Coordination Problems
 
