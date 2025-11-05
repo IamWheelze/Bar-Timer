@@ -508,7 +508,477 @@ The deadline calculation engine must handle:
 
 ## 1.2 Multi-Court Complexity
 
-*[To be completed]*
+### A. German Court Structure Overview
+
+Germany has a five-pillar court system (Fünf-Säulen-Modell) with specialized jurisdiction branches, plus constitutional courts:
+
+#### The Five Jurisdictions
+
+1. **Ordentliche Gerichtsbarkeit** (Ordinary Courts) - Civil & Criminal
+2. **Arbeitsgerichtsbarkeit** (Labor Courts)
+3. **Verwaltungsgerichtsbarkeit** (Administrative Courts)
+4. **Sozialgerichtsbarkeit** (Social Courts)
+5. **Finanzgerichtsbarkeit** (Fiscal Courts)
+
+Plus:
+- **Bundesverfassungsgericht** (Federal Constitutional Court)
+- **Landesverfassungsgerichte** (State Constitutional Courts - 15 states)
+
+### B. Ordinary Courts (Ordentliche Gerichtsbarkeit)
+
+**Jurisdiction**: Civil and criminal matters
+
+#### Four-Tier Hierarchy
+
+**1. Amtsgericht (AG) - Local/Municipal Court**
+- **Number in Germany**: Approximately **430+ Amtsgerichte**
+- **Jurisdiction**:
+  - Civil: Claims up to €5,000 (can be higher for certain matters)
+  - Criminal: Minor offenses (up to 2 years imprisonment, or up to 4 years with consent)
+  - Family matters (as Familiengericht)
+  - Guardianship matters (as Betreuungsgericht)
+  - Land registry (as Grundbuchamt)
+  - Insolvency (as Insolvenzgericht)
+- **Location**: At least one in each judicial district
+- **Presiding**: Single judge (some matters with lay judges)
+- **Examples**:
+  - Amtsgericht Charlottenburg (Berlin)
+  - Amtsgericht München
+  - Amtsgericht Wedding (Berlin)
+
+**2. Landgericht (LG) - Regional Court**
+- **Number in Germany**: Approximately **115+ Landgerichte**
+- **Jurisdiction**:
+  - **First instance**: Civil claims > €5,000, serious criminal cases
+  - **Appellate**: Appeals from Amtsgericht decisions
+  - **Commercial chambers** (Kammern für Handelssachen) for commercial disputes
+  - **As of April 1, 2025**: New Commercial Chambers with specialized jurisdiction
+- **Structure**: Divided into chambers (Kammern)
+  - Zivilkammern (Civil Chambers)
+  - Strafkammern (Criminal Chambers)
+  - Kammern für Handelssachen (Commercial Chambers)
+- **Presiding**: Panel of 3 judges (civil), or 1 professional + 2 lay judges (criminal)
+- **Examples**:
+  - Landgericht Berlin
+  - Landgericht München I
+  - Landgericht Frankfurt am Main
+
+**3. Oberlandesgericht (OLG) - Higher Regional Court**
+- **Number in Germany**: **24 Oberlandesgerichte** (as of 2025)
+- **Jurisdiction**:
+  - **Appellate**: Appeals from Landgericht decisions
+  - **First instance**: State protection matters, certain special cases
+  - **As of April 1, 2025**: New specialized **Commercial Courts** at OLG level
+- **Structure**: Divided into senates (Senate)
+  - Zivilsenate (Civil Senates)
+  - Strafsenate (Criminal Senates)
+- **Presiding**: Panel typically 3 judges
+- **List of all 24 OLGs**:
+  1. Bamberg (Bavaria)
+  2. Brandenburg (Brandenburg)
+  3. Braunschweig (Lower Saxony)
+  4. Bremen (Bremen)
+  5. Celle (Lower Saxony)
+  6. Dresden (Saxony)
+  7. Düsseldorf (North Rhine-Westphalia)
+  8. Frankfurt am Main (Hesse)
+  9. Hamburg (Hamburg)
+  10. Hamm (North Rhine-Westphalia)
+  11. Jena (Thuringia)
+  12. Karlsruhe (Baden-Württemberg)
+  13. Koblenz (Rhineland-Palatinate)
+  14. Köln/Cologne (North Rhine-Westphalia)
+  15. München/Munich (Bavaria)
+  16. Naumburg (Saxony-Anhalt)
+  17. Nürnberg/Nuremberg (Bavaria)
+  18. Oldenburg (Lower Saxony)
+  19. Rostock (Mecklenburg-Western Pomerania)
+  20. Saarbrücken (Saarland)
+  21. Schleswig (Schleswig-Holstein)
+  22. Stuttgart (Baden-Württemberg)
+  23. Zweibrücken (Rhineland-Palatinate)
+  24. Kammergericht Berlin (special status - OLG for Berlin)
+
+**4. Bundesgerichtshof (BGH) - Federal Court of Justice**
+- **Number**: **ONE** (Located in Karlsruhe)
+- **Jurisdiction**:
+  - **Revision** (review for legal errors) from OLG and (exceptionally) LG decisions
+  - Ensures uniform interpretation of federal law
+  - Does NOT review factual findings (only legal questions)
+- **Structure**: 12 Civil Senates, 5 Criminal Senates, plus special senates
+- **Presiding**: Panel of 5 judges
+- **No further appeal** beyond BGH in ordinary jurisdiction (except Constitutional Court)
+
+### C. Labor Courts (Arbeitsgerichtsbarkeit)
+
+**Jurisdiction**: Employment and labor law disputes
+
+#### Three-Tier Structure
+
+**1. Arbeitsgericht (ArbG) - Labor Court**
+- **Number in Germany**: Approximately **120+ Arbeitsgerichte**
+- **Jurisdiction**: All individual and collective labor law disputes
+- **Presiding**: 1 professional judge + 2 lay judges (1 employee rep, 1 employer rep)
+- **Critical Deadlines**:
+  - Kündigungsschutzklage: **3 weeks** (§ 4 KSchG) - SHORTEST major deadline
+  - Allgemeiner Antrag: No specific deadline but urgency matters
+- **Examples**:
+  - Arbeitsgericht Berlin
+  - Arbeitsgericht München
+  - Arbeitsgericht Düsseldorf
+
+**2. Landesarbeitsgericht (LAG) - State Labor Court**
+- **Number in Germany**: **19 Landesarbeitsgerichte**
+- **Jurisdiction**: Appeals from Arbeitsgericht decisions
+- **Minimum claim value for appeal**: €600
+- **Presiding**: 1 professional + 2 lay judges
+- **List of all 19 LAGs**:
+  1. Baden-Württemberg (Stuttgart)
+  2. Bayern (Munich + Nuremberg)
+  3. Berlin-Brandenburg (Berlin)
+  4. Bremen (Bremen)
+  5. Düsseldorf (North Rhine-Westphalia)
+  6. Hamburg (Hamburg)
+  7. Hamm (North Rhine-Westphalia)
+  8. Hessen (Frankfurt am Main)
+  9. Köln/Cologne (North Rhine-Westphalia)
+  10. Mecklenburg-Vorpommern (Rostock)
+  11. Niedersachsen (Hanover)
+  12. Nürnberg/Nuremberg (Bavaria)
+  13. Rheinland-Pfalz (Mainz)
+  14. Saarland (Saarbrücken)
+  15. Sachsen (Chemnitz)
+  16. Sachsen-Anhalt (Halle)
+  17. Schleswig-Holstein (Kiel)
+  18. Thüringen (Erfurt)
+  19. München/Munich (Bavaria)
+
+**3. Bundesarbeitsgericht (BAG) - Federal Labor Court**
+- **Number**: **ONE** (Located in Erfurt)
+- **Jurisdiction**: Revision from LAG decisions
+- **Presiding**: 3 professional judges + 2 lay judges
+- **Ensures**: Uniform interpretation of labor law across Germany
+
+### D. Administrative Courts (Verwaltungsgerichtsbarkeit)
+
+**Jurisdiction**: Disputes between citizens and government authorities (except social/fiscal)
+
+#### Three-Tier Structure
+
+**1. Verwaltungsgericht (VG) - Administrative Court**
+- **Number in Germany**: Approximately **50+ Verwaltungsgerichte**
+- **Jurisdiction**:
+  - Challenges to administrative acts (Verwaltungsakte)
+  - Planning permission disputes
+  - Police matters
+  - Asylum and immigration (in some states)
+- **Presiding**: Panel of 3 judges (or single judge for certain matters)
+- **Examples**:
+  - Verwaltungsgericht Berlin
+  - Verwaltungsgericht München
+  - Verwaltungsgericht Köln
+
+**2. Oberverwaltungsgericht (OVG) / Verwaltungsgerichtshof (VGH) - Higher Administrative Court**
+- **Number in Germany**: **16 courts** (one per state)
+- **Terminology**: Called "Oberverwaltungsgericht" in most states, "Verwaltungsgerichtshof" in Baden-Württemberg, Bavaria, and Hesse
+- **Jurisdiction**:
+  - Appeals from VG decisions
+  - First instance for certain significant administrative matters
+- **Presiding**: Panel of 3 or 5 judges
+- **List of all 16 OVG/VGH**:
+  1. Verwaltungsgerichtshof Baden-Württemberg (Mannheim)
+  2. Bayerischer Verwaltungsgerichtshof (Munich)
+  3. Oberverwaltungsgericht Berlin-Brandenburg (Berlin)
+  4. Oberverwaltungsgericht Bremen (Bremen)
+  5. Hamburgisches Oberverwaltungsgericht (Hamburg)
+  6. Hessischer Verwaltungsgerichtshof (Kassel)
+  7. Oberverwaltungsgericht Mecklenburg-Vorpommern (Greifswald)
+  8. Niedersächsisches Oberverwaltungsgericht (Lüneburg)
+  9. Oberverwaltungsgericht Nordrhein-Westfalen (Münster)
+  10. Oberverwaltungsgericht Rheinland-Pfalz (Koblenz)
+  11. Oberverwaltungsgericht des Saarlandes (Saarlouis)
+  12. Oberverwaltungsgericht Sachsen (Bautzen)
+  13. Oberverwaltungsgericht Sachsen-Anhalt (Magdeburg)
+  14. Schleswig-Holsteinisches Oberverwaltungsgericht (Schleswig)
+  15. Thüringer Oberverwaltungsgericht (Weimar)
+  16. Bayern (second location) - Bayerischer VGH Außensenat (Ansbach)
+
+**3. Bundesverwaltungsgericht (BVerwG) - Federal Administrative Court**
+- **Number**: **ONE** (Located in Leipzig)
+- **Jurisdiction**: Revision from OVG/VGH decisions
+- **Presiding**: Panel of 5 judges
+- **Ensures**: Uniform interpretation of administrative law
+
+### E. Social Courts (Sozialgerichtsbarkeit)
+
+**Jurisdiction**: Social insurance and welfare disputes (health, pension, unemployment, disability)
+
+#### Three-Tier Structure
+
+**1. Sozialgericht (SG) - Social Court**
+- **Number in Germany**: Approximately **69 Sozialgerichte**
+- **Jurisdiction**:
+  - Health insurance disputes
+  - Pension disputes
+  - Unemployment benefits (Hartz IV/Bürgergeld)
+  - Disability benefits
+  - Nursing care insurance
+- **Presiding**: 1 professional judge + 2 lay judges (with relevant expertise)
+- **Examples**:
+  - Sozialgericht Berlin
+  - Sozialgericht München
+  - Sozialgericht Düsseldorf
+
+**2. Landessozialgericht (LSG) - State Social Court**
+- **Number in Germany**: **15 Landessozialgerichte** (some states combined)
+- **Jurisdiction**: Appeals from Sozialgericht decisions
+- **Presiding**: 3 professional judges + 2 lay judges
+- **List of all 15 LSGs**:
+  1. Baden-Württemberg (Stuttgart)
+  2. Bayern (Munich)
+  3. Berlin-Brandenburg (Potsdam)
+  4. Bremen (Bremen - also for Lower Saxony cases)
+  5. Hamburg (Hamburg)
+  6. Hessen (Darmstadt)
+  7. Mecklenburg-Vorpommern (Neubrandenburg)
+  8. Niedersachsen-Bremen (Celle)
+  9. Nordrhein-Westfalen (Essen)
+  10. Rheinland-Pfalz (Mainz)
+  11. Saarland (Saarbrücken - also for Rhineland-Palatinate cases)
+  12. Sachsen (Chemnitz)
+  13. Sachsen-Anhalt (Halle)
+  14. Schleswig-Holstein (Schleswig)
+  15. Thüringen (Erfurt)
+
+**3. Bundessozialgericht (BSG) - Federal Social Court**
+- **Number**: **ONE** (Located in Kassel)
+- **Jurisdiction**: Revision from LSG decisions
+- **Presiding**: 3 professional judges + 2 lay judges
+- **Ensures**: Uniform interpretation of social law
+
+### F. Fiscal Courts (Finanzgerichtsbarkeit)
+
+**Jurisdiction**: Tax and customs disputes
+
+#### Two-Tier Structure (Only jurisdiction with 2 tiers!)
+
+**1. Finanzgericht (FG) - Fiscal Court**
+- **Number in Germany**: **18 Finanzgerichte**
+- **Jurisdiction**:
+  - All tax disputes (income, corporate, VAT, trade tax, etc.)
+  - Customs disputes
+  - Fiscal administration matters
+- **Prerequisite**: Einspruch (objection) procedure with tax authority must be completed first
+- **Presiding**: Panel of 3 judges (or single judge for certain matters)
+- **List of all 18 FGs**:
+  1. Baden-Württemberg (Stuttgart)
+  2. Bayern (Munich - 3 senates in Munich, some in Nuremberg)
+  3. Berlin-Brandenburg (Berlin + Cottbus)
+  4. Bremen (Bremen - for Lower Saxony too)
+  5. Düsseldorf (North Rhine-Westphalia)
+  6. Hamburg (Hamburg)
+  7. Hessen (Kassel)
+  8. Köln/Cologne (North Rhine-Westphalia)
+  9. Mecklenburg-Vorpommern (Greifswald)
+  10. Münster (North Rhine-Westphalia)
+  11. Niedersachsen (Hanover)
+  12. Nürnberg/Nuremberg (Bavaria)
+  13. Rheinland-Pfalz (Neustadt an der Weinstraße)
+  14. Saarland (Saarbrücken)
+  15. Sachsen (Leipzig)
+  16. Sachsen-Anhalt (Halle)
+  17. Schleswig-Holstein (Kiel - for Schleswig-Holstein and Hamburg)
+  18. Thüringen (Gotha)
+
+**2. Bundesfinanzhof (BFH) - Federal Fiscal Court**
+- **Number**: **ONE** (Located in Munich)
+- **Jurisdiction**: Revision from FG decisions
+- **Presiding**: Panel of 5 judges
+- **No lay judges** in fiscal jurisdiction
+- **Ensures**: Uniform interpretation of tax law
+
+### G. Special Courts and Tribunals
+
+#### 1. Bundespatentgericht (BPatG) - Federal Patent Court
+- **Location**: Munich
+- **Jurisdiction**: Patent nullity, trademark cancellation, design registration
+- **Appeal to**: Bundesgerichtshof
+
+#### 2. Bundesverfassungsgericht (BVerfG) - Federal Constitutional Court
+- **Location**: Karlsruhe
+- **Jurisdiction**:
+  - Constitutional complaints (Verfassungsbeschwerden)
+  - Abstract judicial review
+  - Concrete judicial review
+  - Disputes between federal organs
+- **Structure**: 2 Senates, each with 8 judges
+- **Special rules**: Own procedural code (BVerfGG)
+- **Critical**: Verfassungsbeschwerde has **ONE MONTH** deadline from final court decision (or immediate for acts without prior legal remedy)
+
+#### 3. Landesverfassungsgerichte - State Constitutional Courts
+- **Number**: **15 states** have constitutional courts (Bremen has none)
+- **Jurisdiction**: State constitutional matters
+- **Examples**:
+  - Verfassungsgerichtshof Bayern (Munich)
+  - Verfassungsgericht Berlin
+  - Staatsgerichtshof Baden-Württemberg (Stuttgart)
+
+### H. Regional Variations Affecting Deadlines
+
+#### 1. Public Holiday Variations (Covered in 1.1.D)
+- **16 different holiday calendars**
+- Affects § 193 BGB deadline extensions
+- Bavaria has most holidays (12-14), Berlin/Hamburg have fewest (10)
+
+#### 2. Court Organization Differences
+**Example: Berlin's Structure**
+- **Kammergericht**: Functions as both OLG and LAG for Berlin
+- Unique naming conventions
+- Multiple Amtsgerichte within city (Wedding, Charlottenburg, Tempelhof-Kreuzberg, etc.)
+
+**Bavaria's Dual OLG System**:
+- OLG München (for Southern Bavaria)
+- OLG Nürnberg (for Northern Bavaria)
+- Bayerischer VGH (separate from OLG)
+
+#### 3. Court Opening Hours Variations
+- **Most courts**: 9:00-12:00 for public (varies by court)
+- **Filing deadlines**: Must be received by court by 24:00 on deadline day
+- **Electronic filing (beA)**: Accepted 24/7, but timestamp determines compliance
+
+#### 4. Local Court Rules (Geschäftsordnungen)
+- Each court may have local administrative rules
+- Affects:
+  - Hearing scheduling practices
+  - Document submission formats
+  - Chambers specialization
+- **Does NOT affect statutory deadlines**
+
+### I. Court Contact and Filing Requirements by Jurisdiction
+
+#### Electronic Filing Requirements (As of 2025)
+**Mandatory beA/EGVP filing for lawyers**:
+- ✅ Ordinary courts (civil matters) - Mandatory since 2022
+- ✅ Administrative courts - Mandatory since 2022
+- ✅ Social courts - Mandatory since 2022
+- ✅ Fiscal courts - Mandatory since 2022
+- ✅ Labor courts - Mandatory since 2022
+- ❌ Criminal matters - Special rules, mixed paper/electronic
+
+#### Court-Specific Electronic Systems
+- **beA** (besonderes elektronisches Anwaltspostfach) - For lawyers
+- **EGVP** (Elektronisches Gerichts- und Verwaltungspostfach) - For authorities and some parties
+- **beBPo** (besonderes Behördenpostfach) - For authorities
+- Each system has different technical requirements and deadlines
+
+### J. Court Hierarchy and Appeal Paths - Quick Reference
+
+**Ordinary Courts (Civil/Criminal)**:
+```
+Amtsgericht (AG) 430+
+    ↓ Berufung
+Landgericht (LG) 115+
+    ↓ Revision
+Oberlandesgericht (OLG) 24
+    ↓ Revision
+Bundesgerichtshof (BGH) 1
+```
+
+**Labor Courts**:
+```
+Arbeitsgericht (ArbG) 120+
+    ↓ Berufung (€600 minimum)
+Landesarbeitsgericht (LAG) 19
+    ↓ Revision
+Bundesarbeitsgericht (BAG) 1
+```
+
+**Administrative Courts**:
+```
+Verwaltungsgericht (VG) 50+
+    ↓ Berufung/Beschwerde
+Oberverwaltungsgericht (OVG/VGH) 16
+    ↓ Revision
+Bundesverwaltungsgericht (BVerwG) 1
+```
+
+**Social Courts**:
+```
+Sozialgericht (SG) 69
+    ↓ Berufung
+Landessozialgericht (LSG) 15
+    ↓ Revision
+Bundessozialgericht (BSG) 1
+```
+
+**Fiscal Courts**:
+```
+Finanzgericht (FG) 18
+    ↓ Revision
+Bundesfinanzhof (BFH) 1
+(No intermediate tier!)
+```
+
+### K. Total Court Count in Germany
+
+**Approximate Total Number of Courts**:
+- Amtsgerichte: ~430
+- Landgerichte: ~115
+- Oberlandesgerichte: 24
+- Bundesgerichtshof: 1
+- Arbeitsgerichte: ~120
+- Landesarbeitsgerichte: 19
+- Bundesarbeitsgericht: 1
+- Verwaltungsgerichte: ~50
+- Oberverwaltungsgerichte/VGH: 16
+- Bundesverwaltungsgericht: 1
+- Sozialgerichte: ~69
+- Landessozialgerichte: 15
+- Bundessozialgericht: 1
+- Finanzgerichte: 18
+- Bundesfinanzhof: 1
+- Bundespatentgericht: 1
+- Bundesverfassungsgericht: 1
+- Landesverfassungsgerichte: 15
+
+**TOTAL: Approximately 900+ courts across Germany**
+
+### L. System Requirements for Multi-Court Support
+
+The system must:
+
+1. **Court Identification**: Recognize and categorize all ~900 courts
+2. **Jurisdiction Detection**: Identify which procedural code applies (ZPO, StPO, VwGO, etc.)
+3. **Bundesland Mapping**: Map each court to correct state for holiday calendar
+4. **Appeal Path Tracking**: Know correct appeal court for each case
+5. **Court-Specific Rules**: Store local variations and requirements
+6. **Contact Database**: Maintain addresses, phone, fax, email, beA addresses
+7. **Chamber Information**: Track specialized chambers (commercial, family, etc.)
+8. **Electronic Filing Status**: Know which courts accept beA/EGVP/paper
+9. **Opening Hours**: Store court-specific office hours
+10. **Judge Assignment**: Track assigned judge and chamber (if relevant)
+11. **Fee Requirements**: Calculate court fees by court type and claim value
+12. **Update Mechanism**: Handle court reorganizations, closures, new courts
+
+### M. Critical Regional Deadline Differences
+
+| Factor | Impact on Deadlines | Regional Variation |
+|--------|--------------------|--------------------|
+| Public Holidays | § 193 BGB extension | 16 different calendars |
+| Court Type | Different procedural codes | 5 jurisdictions |
+| Court Level | Different appeal deadlines | 3-4 tiers per jurisdiction |
+| Procedural Code | Calculation method variations | 8+ codes (ZPO, StPO, etc.) |
+| Electronic Filing | Timestamp precision | All courts since 2022 |
+| Summer Postponement | § 227 Abs. 3 ZPO | Uniform (July 1-Aug 31) |
+
+### N. 2025 Update: New Commercial Courts
+
+**Effective April 1, 2025**:
+- Federal states may establish **Commercial Courts** at OLG level
+- **Commercial Chambers** at LG level
+- Specialized for international commercial disputes
+- **Impact**: Additional court type to track in system
+- **Deadline rules**: Follow standard ZPO provisions but specialized procedures
 
 ## 1.3 Integration Nightmares
 
