@@ -23,10 +23,11 @@ export const register = async (req: Request, res: Response) => {
     });
 
     // Generate JWT
+    const jwtSecret = process.env.JWT_SECRET as string;
     const token = jwt.sign(
       { id: user.id, email: user.email },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '30d' }
+      jwtSecret,
+      { expiresIn: '30d' }
     );
 
     res.status(201).json({
@@ -62,10 +63,11 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate JWT
+    const jwtSecret = process.env.JWT_SECRET as string;
     const token = jwt.sign(
       { id: user.id, email: user.email },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '30d' }
+      jwtSecret,
+      { expiresIn: '30d' }
     );
 
     res.json({
