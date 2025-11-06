@@ -4692,7 +4692,393 @@ System tracks all attempts with timestamps
 
 # PART 5: DATA REQUIREMENTS
 
-*[To be completed]*
+## 5.1 Master Data Needed
+
+### A. Complete German Court Directory
+
+**Structure**:
+```
+Court Database (~900 courts):
+- Court ID: Unique identifier
+- Court Name: Official name (e.g., "Amtsgericht München")
+- Court Type: AG, LG, OLG, BGH, ArbG, LAG, BAG, VG, OVG/VGH, BVerwG, SG, LSG, BSG, FG, BFH
+- Jurisdiction: Civil, Criminal, Labor, Administrative, Social, Fiscal
+- Bundesland: State location (for holiday calendar)
+- City: Location
+- Address: Full postal address
+- Contact Information:
+  - Phone
+  - Fax
+  - General email
+  - beA address (e.g., ag-muenchen@justiz.bayern.de)
+  - Website
+- Parent/Appeal Court: Next level court for appeals
+- Chambers/Divisions: Specialized chambers if applicable
+- Filing Requirements: Court-specific requirements
+- Office Hours: Public hours
+- Status: Active/Inactive
+- Notes: Special procedures or requirements
+```
+
+**Data Sources**:
+- Official state justice ministry websites
+- BRAK court directory
+- Manual curation and updates
+- Verification with each court
+
+**Maintenance**:
+- Quarterly verification of contact information
+- Immediate updates for court reorganizations
+- Version control for historical accuracy
+
+### B. Holiday Calendars for All 16 Bundesländer
+
+**Structure**:
+```
+Holiday Calendar:
+- Year: 2025, 2026, 2027... (5 years ahead minimum)
+- Bundesland: BW, BY, BE, BB, HB, HH, HE, MV, NI, NW, RP, SL, SN, ST, SH, TH
+- Holidays: [
+    {
+      Date: 2025-01-01
+      Name: "Neujahr"
+      Type: "federal" or "state"
+      Affects_Deadlines: true/false
+      States: ["ALL"] or ["BW", "BY", ...]
+      Notes: Special conditions (e.g., "BY: Only Catholic municipalities")
+    },
+    ...
+  ]
+```
+
+**Special Handling**:
+- **Easter-based holidays**: Auto-calculate for each year
+- **Municipality-specific** (Bavaria Mariä Himmelfahrt): Flag for manual verification
+- **Buß- und Bettag** (Saxony only): Calculate 2nd-to-last Wednesday in November
+
+**Data Sources**:
+- Federal and state government official calendars
+- Verified annually against official publications
+- Auto-calculation for movable holidays
+
+**Storage**:
+- Pre-calculated for 5 years ahead
+- Annual update cycle (December for next year)
+- Historical data preserved for retroactive calculations
+
+### C. Court Fee Schedules
+
+**Purpose**: Calculate filing fees for client estimates
+
+**Structure**:
+```
+Court Fees (GKG - Gerichtskostengesetz):
+- Court Type: AG, LG, OLG, etc.
+- Procedure Type: Klage, Berufung, Revision, etc.
+- Claim Value: Amount in dispute (Streitwert)
+- Fee Calculation: Formula or table lookup
+- Additional Fees:
+  - Service fees
+  - Urgent procedures
+  - Weekend/after-hours
+- Exemptions: Social cases, legal aid
+```
+
+**Usage**:
+- Display estimated court fees when creating deadline
+- Help lawyers inform clients of costs
+- Track fee payments
+
+**Updates**:
+- Typically annual (January)
+- Monitor changes to GKG
+- Immediate updates if fee schedule changes
+
+### D. Judicial Vacation Schedules
+
+**Current System** (Post-1997):
+- § 227 Abs. 3 ZPO: July 1 - August 31 postponement right
+- Not a deadline extension, only affects hearings
+- Track per court if specific patterns exist
+
+**Historical Data** (Pre-1997):
+- For retroactive calculations
+- July 15 - September 15 was traditional Gerichtsferien
+
+**Storage**:
+- Rules by year and jurisdiction
+- Exceptions for urgent matters
+- Court-specific variations if any
+
+### E. Address and Contact Databases
+
+**Courts**: See 5.1.A above
+
+**Law Firms**: (For multi-firm SaaS deployment)
+```
+Firm Directory:
+- Firm ID
+- Firm Name
+- Address
+- Contact Person
+- Subscription Level
+- Active Users Count
+- beA Credentials (encrypted)
+- Custom Settings
+```
+
+**Lawyers/Staff**: (User Directory)
+```
+User Profile:
+- User ID
+- Name
+- Email
+- Phone/Mobile
+- Role: Partner, Associate, ReNo, Secretary, etc.
+- Firm ID
+- beA Certificate (encrypted)
+- Specializations: Labor law, administrative, etc.
+- Active Cases
+- Notification Preferences
+- Calendar Integration Settings
+```
+
+### F. Legal Form Templates
+
+**Deadline-Related Forms**:
+- Berufungsschrift (Appeal brief) template
+- Revisionsschrift template
+- Wiedereinsetzung application template
+- Fristverlängerung request template
+- Widerspruch template (administrative)
+
+**Structure**:
+```
+Template:
+- Template ID
+- Name: "Berufungsschrift ZPO"
+- Jurisdiction: ZPO, StPO, VwGO, etc.
+- Document Type: DOCX, PDF
+- Variables: [Gericht, Aktenzeichen, Parteinamen, etc.]
+- Usage Instructions
+- Legal Basis References
+- Last Updated Date
+```
+
+**Benefits**:
+- Quick document generation
+- Consistency across firm
+- Reduced errors
+- Time savings
+
+### G. Deadline Rulebooks
+
+**Comprehensive Rule Database**:
+```
+Deadline Rules:
+- Procedural Code: ZPO, StPO, VwGO, ArbGG, SGG, FGO, FamFG, InsO
+- Deadline Type: Berufung, Revision, Widerspruch, etc.
+- Legal Provision: § 511 ZPO, § 4 KSchG, etc.
+- Duration: 1 month, 3 weeks, 2 weeks, etc.
+- Duration Unit: MONTHS, WEEKS, DAYS
+- Is Notfrist: Yes/No (peremptory deadline)
+- Calculation Start: § 187 BGB (event + 1 day) or event day
+- Extensions Possible: Yes/No
+- Wiedereinsetzung Possible: Yes/No
+- Special Rules: Text notes
+- Examples: Sample calculations
+- References: Legal commentary, case law
+```
+
+**Total Rules**: 200+ different deadline types across all procedures
+
+**Maintenance**:
+- Monitor legal changes (new laws, amendments)
+- Update when procedural codes change
+- Add new deadline types as discovered
+- Regular legal review (annual minimum)
+
+## 5.2 Real-time Data Feeds
+
+### A. Court Holiday Updates
+
+**Purpose**: Capture rare mid-year changes to holiday calendars
+
+**Monitoring**:
+- State government websites
+- RSS feeds from justice ministries
+- Manual monitoring of official announcements
+
+**Update Process**:
+1. Detect holiday change announcement
+2. Verify authenticity
+3. Update holiday calendar database
+4. Recalculate affected deadlines
+5. Notify affected users immediately
+6. Log change in audit trail
+
+**Frequency**: As needed (rare, typically only advance planning for next year)
+
+### B. Legal Changes/Reforms
+
+**Purpose**: Track changes to procedural codes affecting deadlines
+
+**Examples**:
+- ZPO amendment changes Berufungsfrist from 1 month to 6 weeks (hypothetical)
+- New law introduces new deadline type
+- Constitutional court ruling affects deadline calculation
+
+**Monitoring Sources**:
+- Bundesgesetzblatt (Federal Law Gazette)
+- State law gazettes
+- Legal news services (Beck Online, Juris)
+- Court announcements
+- Bar association bulletins
+
+**Alert System**:
+```
+When Legal Change Detected:
+1. Legal team reviews change
+2. Assess impact on deadline calculations
+3. Update deadline rulebook
+4. System notification to all users:
+   "LEGAL UPDATE: ZPO § 511 changed, Berufung now 6 weeks"
+5. Grace period for transition (if applicable)
+6. Force re-training on affected deadline types
+```
+
+**Implementation Timeline**:
+- Track effective date of law change
+- System switches rules automatically on effective date
+- Support both old and new rules during transition
+
+### C. beA System Status
+
+**Purpose**: Monitor beA availability in real-time
+
+**Data Sources**:
+- beA status page: https://status.bea.brak.de (if available)
+- BRAK announcements
+- Direct API health checks (every 5 minutes)
+- User-reported issues
+
+**Status Indicators**:
+```
+beA Status:
+- Operational (green): All systems normal
+- Degraded (yellow): Slowness, partial outage
+- Outage (red): System unavailable
+- Maintenance (blue): Planned downtime
+
+Display in System:
+- Status badge in UI header
+- Alert banner if not operational
+- Escalation warnings for approaching deadlines
+```
+
+**Proactive Alerts**:
+- If beA down + deadline < 48h → Immediate escalation
+- Planned maintenance announcements → Pre-warn affected users
+- Historical uptime tracking for reliability assessment
+
+### D. Court Contact Updates
+
+**Purpose**: Keep court directory current
+
+**Update Sources**:
+- Court websites (web scraping or manual check)
+- Justice ministry announcements
+- User-reported corrections
+- Periodic verification calls/emails to courts
+
+**Change Types**:
+- Phone/fax number changes
+- Address changes (rare, but happens with renovations)
+- Email changes
+- beA address changes
+- Court reorganizations (mergers, closures)
+- New courts opening
+
+**Verification Cycle**:
+- Quarterly: Automated web scraping + verification
+- Annual: Manual verification of top 100 courts
+- Ad-hoc: User corrections processed within 24 hours
+
+**User Contribution**:
+```
+"Court information incorrect?"
+[Report Issue]
+
+Form:
+- Court: AG München
+- Field: Phone Number
+- Current Value: +49 89 5597-01
+- Correct Value: +49 89 5597-02
+- Source: [Verified on court website / Called directly]
+- Your Contact: [For verification]
+
+[Submit] → Admin reviews → Update if verified → Thank user
+```
+
+### E. Third-Party Data Integrations
+
+**Legal Research Databases**:
+- Beck Online: Case law, commentary
+- Juris: Legal database
+- Integration: Link to relevant provisions directly from deadline rules
+
+**News Services**:
+- Legal news affecting deadlines
+- Court announcements
+- Professional updates
+
+**Government Portals**:
+- Justiz-Portal Deutschland
+- State justice portals
+- Official court announcements
+
+### F. Data Quality Assurance
+
+**Validation Rules**:
+```
+Court Data:
+- Phone number format validation
+- Email format validation
+- beA address matches pattern
+- Address complete and valid
+- Bundesland matches court location
+
+Holiday Data:
+- No duplicate holidays
+- Dates in valid format
+- Easter calculations verified
+- Federal vs. state flags correct
+- All Bundesländer covered
+
+Deadline Rules:
+- Legal provision exists
+- Duration > 0
+- Calculation method specified
+- All required fields present
+```
+
+**Regular Audits**:
+- Monthly: Automated data quality checks
+- Quarterly: Sample verification (100 random courts)
+- Annually: Complete manual review of critical data
+- Continuous: User feedback integration
+
+**Data Versioning**:
+- Track all data changes
+- Maintain historical versions
+- Allow rollback if error discovered
+- Audit trail for compliance
+
+**Backup and Redundancy**:
+- Daily backups of all master data
+- Geographically distributed copies
+- Point-in-time recovery capability
+- Annual archival for historical calculations
 
 ---
 
