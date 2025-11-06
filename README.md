@@ -52,6 +52,10 @@ Or use the automated script:
 - **[VERIFICATION.md](VERIFICATION.md)** - System verification report
 - **[verify.sh](verify.sh)** - Automated verification script
 
+**Design & UX:**
+- **[UI-UX-DESIGN.md](UI-UX-DESIGN.md)** - Complete design system, mockups, components
+- **[USER-FLOWS.md](USER-FLOWS.md)** - User journeys, flows, and interaction patterns
+
 **Support:**
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
 - **[README.md](README.md)** - This file (system overview)
