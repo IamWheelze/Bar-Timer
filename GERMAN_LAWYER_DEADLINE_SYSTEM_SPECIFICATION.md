@@ -3294,7 +3294,1254 @@ POST   /api/v1/documents/parse         # Parse document for deadlines
 
 # PART 3: FUNCTIONAL SPECIFICATIONS
 
-*[To be completed]*
+## 3.1 Deadline Input Methods
+
+### A. Manual Entry
+
+#### Basic Deadline Creation Form
+
+**Required Fields**:
+```
+Deadline Creation:
+- Case/Matter: [Select from dropdown or create new]
+- Court: [Autocomplete from 900+ courts]
+- Deadline Type: [Berufung, Revision, Klageerwiderung, etc.]
+- Triggering Event: [Zustellung, Urteil, Beschluss, etc.]
+- Event Date: [Date picker]
+- Procedural Code: [ZPO, StPO, VwGO, ArbGG, SGG, FGO, FamFG, InsO]
+- Duration: [Auto-filled based on deadline type, editable]
+- Calculation Method: [Automatic / Manual override]
+```
+
+**Optional Fields**:
+```
+- Assigned To: [Lawyer selection]
+- Internal Deadline: [Earlier than legal deadline]
+- Priority: [Normal, High, Critical]
+- Notes: [Free text]
+- Related Documents: [File upload]
+- Client Notification: [Yes/No, frequency]
+```
+
+**Smart Features**:
+- **Auto-fill**: Based on deadline type (e.g., "Berufung" → automatically sets 1 month)
+- **Court holiday check**: Real-time warning if deadline falls on holiday
+- **Duplicate detection**: "Similar deadline exists for this case"
+- **Template system**: Save frequently used deadline configurations
+
+#### Quick Add
+
+**Minimal Input**:
+```
+Quick Deadline:
+- Case: [Dropdown]
+- Type: [Dropdown - top 10 most common]
+- Date: [Date picker]
+[System calculates everything else]
+```
+
+**Use Case**: Lawyer in a hurry, needs to log deadline immediately
+
+#### Bulk Import
+
+**CSV Import**:
+```
+CSV Format:
+case_number, court, deadline_type, event_date, assigned_to, notes
+"12 O 456/24", "AG München", "Berufung", "2025-03-15", "mueller@firm.de", "Important case"
+```
+
+**Excel Import**:
+- Support .xlsx files
+- Mapping wizard: User maps Excel columns to system fields
+- Validation: Check for errors before import
+- Preview: Show first 10 rows before importing all
+
+**Validation Rules**:
+- Check case exists or create new
+- Validate court name (fuzzy matching)
+- Validate deadline type
+- Check date format
+- Verify assigned user exists
+
+### B. Automatic Extraction from Documents
+
+#### Workflow Overview
+```
+Document Upload → Classification → Text Extraction →
+Entity Recognition → Deadline Identification → Calculation →
+Confidence Scoring → Review Queue (if low confidence) →
+Deadline Creation
+```
+
+#### Document Upload Interface
+
+**Drag & Drop Zone**:
+- "Drop court document here or click to upload"
+- Accepted formats: PDF, DOCX, TIF, JPG, PNG
+- Multiple file upload supported
+- Progress bar during upload
+
+**Metadata Input** (Optional but helpful):
+```
+Document Info:
+- Associated Case: [Dropdown]
+- Document Type: [Urteil, Beschluss, Verfügung, Ladung, Other]
+- Court: [Autocomplete]
+- Date Received: [Auto-filled with today, editable]
+```
+
+#### Processing Pipeline
+
+**Stage 1: Document Classification**
+- AI model identifies document type
+- Options: Urteil, Beschluss, Verfügung, Ladung, Sonstiges
+- Confidence score: 0-100%
+- If < 70% confidence: Ask user to confirm type
+
+**Stage 2: Text Extraction**
+- **Digital PDF**: Direct text extraction
+- **Scanned PDF**: OCR processing
+  - Preprocessing: Deskew, denoise
+  - OCR engine: Tesseract or commercial
+  - Post-processing: Spelling correction
+- **Quality check**: Flag low-quality scans
+
+**Stage 3: Section Identification**
+- Locate "Rechtsmittelbelehrung" section
+- Extract relevant paragraphs
+- Handle variations in formatting
+
+**Stage 4: Named Entity Recognition**
+- **Remedy Type**: "Berufung", "Revision", "Beschwerde"
+- **Duration**: "einem Monat", "zwei Wochen", "drei Wochen"
+- **Triggering Event**: "nach Zustellung", "ab Bekanntgabe"
+- **Court**: "Landgericht München I"
+- **Case Reference**: "12 O 456/24"
+
+**Stage 5: Deadline Calculation**
+- Apply § 187-193 BGB rules
+- Load appropriate holiday calendar
+- Calculate final deadline
+- Generate step-by-step explanation
+
+**Stage 6: Confidence Scoring**
+```
+Score Calculation:
+100%: Digital PDF, all entities found with high confidence, standard language
+90-99%: Digital PDF, all entities found, minor variations in language
+80-89%: OCR required, all entities found, good quality scan
+70-79%: OCR required, all entities found, poor quality scan
+60-69%: Some entities missing or ambiguous
+<60%: Critical information missing or very ambiguous
+
+Thresholds:
+≥80%: Auto-create deadline, notify lawyer
+70-79%: Create draft deadline, flag for review
+<70%: Manual review queue, don't auto-create
+```
+
+#### Review Queue Interface
+
+**For Low-Confidence Extractions**:
+
+**Split-Screen View**:
+```
+Left Side: Original Document (PDF viewer)
+- Highlight extracted text
+- Zoom, pan controls
+- Page navigation
+
+Right Side: Extracted Information
+- Deadline Type: [Editable dropdown]
+- Duration: [Editable]
+- Event Date: [Editable date picker]
+- Court: [Editable autocomplete]
+- Calculated Deadline: [Auto-updates as fields change]
+- Confidence: 65% [Show breakdown]
+
+Actions:
+[Approve & Create Deadline] [Edit & Create] [Reject - Manual Entry]
+```
+
+**Feedback Loop**:
+- User corrections fed back to ML model
+- Improves accuracy over time
+- Track improvement metrics
+
+### C. beA Automatic Import
+
+#### Real-Time Processing
+
+**When beA Message Arrives**:
+```
+1. beA poller detects new message (every 15 minutes)
+2. Download message + all attachments
+3. Extract metadata:
+   - Sender (court)
+   - Case number
+   - Delivery timestamp
+   - Document type
+4. Process each PDF attachment:
+   - Run document classification
+   - Extract deadlines
+   - Calculate due dates
+5. Create deadline draft
+6. Notify assigned lawyer immediately
+```
+
+**Smart Assignment**:
+- Match case number to existing cases
+- Auto-assign to lawyer handling that case
+- If no match: Assign to office manager for routing
+- Notification: "New beA message with deadline: Berufung in Schmidt case, due April 15"
+
+#### beA Integration UI
+
+**beA Inbox View** (Within System):
+```
+beA Messages:
+[Filter: Unread | With Deadlines | All]
+
+Message List:
+┌─────────────────────────────────────────────────────┐
+│ 🔴 AG München - 12 O 456/24 - Urteil               │
+│    Received: 2025-03-15 14:23                       │
+│    Deadline Detected: Berufung, due 2025-04-16      │
+│    [View Details] [Create Deadline]                 │
+├─────────────────────────────────────────────────────┤
+│ ⚪ LG Berlin - 5 C 789/24 - Verfügung              │
+│    Received: 2025-03-14 10:15                       │
+│    No deadline detected                             │
+│    [View Message]                                   │
+└─────────────────────────────────────────────────────┘
+```
+
+**Message Detail View**:
+```
+From: AG München <ag-muenchen@justiz.bayern.de>
+Case: 12 O 456/24 - Schmidt v. Müller
+Received: 2025-03-15 14:23:45 CET (beA timestamp)
+Status: ✅ Processed
+
+Attachments:
+📄 Urteil_12_O_456_24.pdf (524 KB)
+   → Deadline Extracted: Berufung, due 2025-04-16
+
+📄 Zustellungsurkunde.pdf (84 KB)
+   → Service certificate
+
+Actions:
+[Download All] [View in beA Web Client] [Archive]
+
+Extracted Deadline:
+Type: Berufung einlegen
+Court: Landgericht München I
+Service Date: 2025-03-15
+Calculation: 1 month from 2025-03-16 = 2025-04-16
+Confidence: 95%
+
+[Create Deadline] [Edit Before Creating] [Ignore]
+```
+
+### D. Email Parsing
+
+#### Email Monitoring Setup
+
+**Configuration**:
+```
+Email Monitoring:
+- Email Account: [court-mail@lawfirm.de]
+- Protocol: IMAP / POP3 / Microsoft Graph API
+- Credentials: [Encrypted storage]
+- Polling Frequency: Every 30 minutes
+- Folder to Monitor: Inbox / Court Communications
+```
+
+**Whitelist Management**:
+```
+Trusted Senders (Courts):
+- *@justiz.bayern.de
+- *@justiz.nrw.de
+- ag-muenchen@justiz.bayern.de
+- lg-berlin@justiz.berlin.de
+[Add Pattern] [Import from Court Database]
+```
+
+#### Email Processing
+
+**Email Analysis**:
+1. Check sender against whitelist
+2. Extract metadata from email headers
+3. Parse email body for:
+   - Case numbers (regex patterns)
+   - Date references
+   - Keywords (Termin, Frist, Verhandlung, Urteil)
+4. Process email attachments (same as manual upload)
+5. Create deadline draft if sufficient info found
+
+**Email-to-Deadline Mapping**:
+```
+Subject: 12 C 456/24 - Terminsänderung
+Body: "Der Termin zur mündlichen Verhandlung wird verlegt
+       auf den 15.05.2025, 10:00 Uhr."
+
+Extraction:
+- Case: 12 C 456/24
+- Event Type: Hearing (Termin)
+- New Date: 2025-05-15 10:00
+- Action: Update existing hearing deadline
+```
+
+**Ambiguous Emails**:
+- If cannot extract clear deadline: Flag for manual review
+- Show original email + extracted partial info
+- User completes missing information
+
+### E. Deadline Templates
+
+#### Pre-Configured Templates
+
+**Common Deadline Templates**:
+```
+1. Berufung nach Amtsgericht-Urteil (ZPO)
+   - Procedural Code: ZPO
+   - Duration: 1 month
+   - Type: Notfrist
+   - Appeal Court: [Auto-fill Landgericht based on AG]
+
+2. Kündigungsschutzklage (ArbGG)
+   - Procedural Code: ArbGG § 4 KSchG
+   - Duration: 3 weeks
+   - Type: Notfrist (CRITICAL)
+   - Court: Arbeitsgericht
+
+3. Revision nach Landgericht (ZPO)
+   - Procedural Code: ZPO
+   - Duration: 1 month (filing) + 2 months (justification)
+   - Type: Notfrist
+   - Appeal Court: Oberlandesgericht
+
+4. Widerspruch Verwaltungsakt (VwGO)
+   - Procedural Code: VwGO
+   - Duration: 1 month
+   - Type: Rechtsbehelffrist
+   - Court: [Depends on authority]
+
+... [50+ pre-configured templates]
+```
+
+**Custom Templates**:
+- Users can save their own templates
+- Firm-wide templates (shared)
+- Personal templates (private)
+
+**Template Usage**:
+```
+Create from Template:
+1. Select template: [Dropdown with search]
+2. System pre-fills all fields
+3. User adjusts:
+   - Case
+   - Event date
+   - Assigned lawyer
+4. System auto-calculates deadline
+5. Create deadline
+```
+
+## 3.2 Calculation Engine Requirements
+
+### A. Core Calculation Algorithm
+
+#### Input Parameters
+```
+DeadlineCalculation {
+  event_date: Date           // Triggering event date
+  event_type: String         // Zustellung, Urteil, etc.
+  duration: Duration         // e.g., "1 month", "3 weeks", "14 days"
+  duration_unit: Unit        // DAYS, WEEKS, MONTHS
+  procedural_code: Code      // ZPO, StPO, VwGO, etc.
+  court_location: Court      // For holiday calendar
+  bundesland: State          // For state-specific holidays
+}
+```
+
+#### Calculation Steps (§ 187-193 BGB)
+
+**Step 1: Determine Start Date (§ 187 BGB)**
+```
+if event_is_ereignisfrist:
+    start_date = event_date + 1 day  // Don't count event day
+else:
+    start_date = event_date  // Count from event day
+
+Example:
+event_date = 2025-03-15 (Friday)
+start_date = 2025-03-16 (Saturday)  // Start counting from Saturday
+```
+
+**Step 2: Calculate Preliminary End Date (§ 188 BGB)**
+```
+if duration_unit == DAYS:
+    end_date = start_date + duration days
+
+elif duration_unit == WEEKS:
+    end_date = start_date + (duration * 7) days
+    // Falls on same day of week as start
+
+elif duration_unit == MONTHS:
+    end_date = add_months(start_date, duration)
+    // Falls on same day of month as start
+    // If day doesn't exist (e.g., Feb 30), use last day of month
+
+Example:
+start_date = 2025-03-16
+duration = 1 month
+end_date = 2025-04-16
+```
+
+**Step 3: Check Weekend/Holiday (§ 193 BGB)**
+```
+load_holiday_calendar(bundesland, year)
+
+if end_date is Sunday OR end_date is public_holiday:
+    while end_date is (Sunday OR public_holiday):
+        end_date = end_date + 1 day
+    // Extend to next Werktag (working day)
+
+Note: Saturday IS a working day in German law
+```
+
+**Step 4: Final Verification**
+```
+verify:
+- end_date >= start_date
+- end_date is valid calendar date
+- end_date is Werktag (not Sunday or holiday)
+- calculation logic documented for audit
+
+return {
+  deadline_date: end_date,
+  calculation_steps: [detailed log],
+  holiday_calendar_used: [calendar version],
+  calculated_by: [system/user],
+  calculated_at: [timestamp]
+}
+```
+
+### B. Holiday Calendar Management
+
+#### Data Structure
+```
+HolidayCalendar {
+  year: 2025
+  bundesland: "BY" // Bavaria
+  holidays: [
+    {
+      date: "2025-01-01",
+      name: "Neujahr",
+      type: "federal", // federal or state-specific
+      affects_deadlines: true
+    },
+    {
+      date: "2025-01-06",
+      name: "Heilige Drei Könige",
+      type: "state",
+      states: ["BW", "BY", "ST"],
+      affects_deadlines: true
+    },
+    {
+      date: "2025-08-15",
+      name: "Mariä Himmelfahrt",
+      type: "state",
+      states: ["BY", "SL"],
+      municipalities: ["predominantly_catholic"], // Special rule for BY
+      affects_deadlines: true
+    },
+    ...
+  ]
+}
+```
+
+#### Holiday Calculation (Easter-Based)
+
+**Dynamic Holidays**:
+```
+Easter-dependent holidays:
+- Karfreitag (Good Friday) = Easter - 2 days
+- Ostermontag (Easter Monday) = Easter + 1 day
+- Christi Himmelfahrt (Ascension) = Easter + 39 days
+- Pfingstmontag (Whit Monday) = Easter + 50 days
+- Fronleichnam (Corpus Christi) = Easter + 60 days
+
+Easter Algorithm (Gauss):
+// Calculate Easter Sunday for given year
+// Returns date object
+```
+
+#### Calendar Updates
+- **Annual update**: Load next year's calendar by December
+- **Mid-year corrections**: Handle rare changes
+- **Version control**: Track which calendar version used for each calculation
+- **Audit trail**: Log all calendar changes
+
+### C. Backward Calculation
+
+#### From Deadline to Trigger Date
+
+**Use Case**: "I need to file by April 15. When did service occur?"
+
+**Algorithm**:
+```
+backward_calculate(deadline_date, duration, bundesland):
+    1. Load holiday calendar
+    2. Start from deadline_date
+    3. If deadline_date is extended (was Sunday/holiday):
+       - Walk backward to find original calculated date
+    4. Subtract duration:
+       - If months: Same day of earlier month
+       - If weeks: Same day of week, N weeks earlier
+       - If days: N days earlier
+    5. Add 1 day (to get original event date per § 187 BGB)
+    6. Return event_date
+
+    Example:
+    deadline_date = 2025-04-16 (Wednesday)
+    duration = 1 month
+    → Calculated end was April 16
+    → Start date was March 16
+    → Event date = March 15 (service date)
+```
+
+**Verification**:
+- Run forward calculation to verify
+- Should arrive at same deadline_date
+- If mismatch: Alert for manual review
+
+### D. Conflict Detection
+
+#### Multiple Deadlines Same Day
+
+**Detection**:
+```
+check_conflicts(lawyer, date):
+    deadlines_on_date = get_deadlines(lawyer, date)
+
+    if count(deadlines_on_date) >= 3:
+        alert = "Warning: 3+ deadlines on " + date
+        priority = MEDIUM
+
+    if any(deadlines_on_date is Notfrist) AND count > 1:
+        alert = "CRITICAL: Multiple Notfristen on " + date
+        priority = HIGH
+
+    return alert
+```
+
+**Resolution Suggestions**:
+- "Consider delegating some deadlines"
+- "Schedule earlier completion for less critical items"
+- "Block out day in calendar for deadline work"
+
+#### Deadline Dependencies
+
+**Related Deadlines**:
+```
+Example Chain:
+1. Berufung einlegen (file appeal) - April 15
+   └─> 2. Berufung begründen (justify appeal) - June 15
+       └─> 3. Evidence submission - July 15
+
+Dependency Tracking:
+- If (1) not completed, (2) and (3) become irrelevant
+- If (1) deadline missed, alert about entire chain
+- Visual dependency graph
+```
+
+### E. Multiple Calculation Scenarios
+
+#### "What-If" Calculations
+
+**Interface**:
+```
+Deadline Calculator:
+- Event Date: [2025-03-15]
+- Deadline Type: [Berufung]
+- Court: [AG München → LG München I]
+
+Calculation Result:
+Standard Deadline: 2025-04-16
+
+What-If Scenarios:
+1. "If served 1 day later (March 16):"
+   → Deadline: 2025-04-17
+
+2. "If filed in Hamburg instead (different holidays):"
+   → Deadline: 2025-04-16 (same)
+
+3. "With 3-day safety buffer:"
+   → Internal deadline: 2025-04-13
+
+[Generate Report] [Save Scenario]
+```
+
+## 3.3 Notification System
+
+### A. Notification Timing Rules
+
+#### Default Reminder Schedule
+
+**For Notfristen (Peremptory Deadlines)**:
+```
+Reminders:
+- 4 weeks before: Initial notification
+- 2 weeks before: First reminder
+- 1 week before: Second reminder
+- 3 days before: Urgent reminder
+- 1 day before: Critical reminder
+- Morning of deadline (8:00 AM): Final reminder
+
+Escalation (if status != "In Progress"):
+- < 1 week: Level 2 (Supervisor notified)
+- < 3 days: Level 3 (Office manager notified)
+- < 24 hours: Level 4 (All partners notified)
+```
+
+**For Regular Deadlines**:
+```
+Reminders:
+- 2 weeks before: Initial notification
+- 1 week before: Reminder
+- 3 days before: Urgent reminder
+- Morning of deadline: Final reminder
+
+Less aggressive escalation
+```
+
+**User-Configurable**:
+- Per-user notification preferences
+- Per-deadline type overrides
+- Per-client requirements
+
+### B. Multi-Channel Notifications
+
+#### Email Notifications
+
+**Template: Deadline Reminder**
+```
+Subject: [FRIST] Berufung fällig in 3 Tagen - 12 O 456/24
+
+Sehr geehrter Herr RA Müller,
+
+Dies ist eine Erinnerung für eine wichtige Frist:
+
+Fall: Schmidt gegen Müller GmbH
+Aktenzeichen: 12 O 456/24
+Gericht: AG München → Berufung an LG München I
+
+Frist: Berufung einlegen
+Fristende: Mittwoch, 16. April 2025, 24:00 Uhr
+Verbleibende Zeit: 3 Tage
+
+Fristtyp: ⚠️ Notfrist (NICHT VERLÄNGERBAR)
+
+Berechnung:
+- Urteil zugestellt: 15. März 2025
+- Fristbeginn: 16. März 2025 (§ 187 BGB)
+- Dauer: 1 Monat
+- Fristende: 16. April 2025
+
+Status: ❌ Noch nicht begonnen
+
+Nächste Schritte:
+1. Berufungsschrift vorbereiten
+2. Prüfung durch Partner RA Weber
+3. Elektronische Einreichung via beA
+
+[Im System öffnen] [Als erledigt markieren]
+
+Mit freundlichen Grüßen,
+Ihr Fristenverwaltungssystem
+```
+
+#### SMS Notifications
+
+**Format** (160 characters max):
+```
+DRINGEND: Notfrist Berufung 12 O 456/24 endet 16.04.2025 (24h).
+Status: Nicht begonnen.
+Details: [short-link]
+```
+
+**When to send SMS**:
+- < 24 hours to Notfrist
+- Level 4 escalation
+- beA system down < 48h before deadline
+
+#### Push Notifications (Mobile/Web)
+
+**Format**:
+```
+Title: Frist morgen fällig!
+Body: Berufung einlegen - Schmidt v. Müller - 12 O 456/24
+Icon: Red exclamation mark
+Actions: [View] [Dismiss] [Snooze 4h]
+Priority: High (bypasses Do Not Disturb on mobile)
+```
+
+#### In-App Notifications
+
+**Notification Bell** (Top right of interface):
+```
+🔔 (5)
+Dropdown:
+┌──────────────────────────────────────────────┐
+│ 🔴 Notfrist in 24h: Berufung - 12 O 456/24  │
+│    16. April 2025                             │
+│    [View Details]                        [×]  │
+├──────────────────────────────────────────────┤
+│ 🟠 Frist in 3 Tagen: Klage - 5 C 789/24     │
+│    [View Details]                        [×]  │
+├──────────────────────────────────────────────┤
+│ 🟢 Neue beA-Nachricht von AG München         │
+│    Enthält Frist: Termin 15.05.2025          │
+│    [Process]                             [×]  │
+└──────────────────────────────────────────────┘
+
+[Mark All Read] [Settings]
+```
+
+### C. Escalation Chains
+
+#### Defined in Part 1.5.C (Reference)
+
+**Implementation**:
+```
+EscalationRule {
+  level: 2,
+  trigger: "deadline < 2 weeks AND status != 'In Progress'",
+  notify: [assigned_lawyer, supervisor],
+  notification_method: ["email", "in_app"],
+  repeat_frequency: "daily"
+}
+
+EscalationRule {
+  level: 4,
+  trigger: "notfrist < 24 hours AND status != 'In Progress'",
+  notify: [assigned_lawyer, all_partners, office_manager],
+  notification_method: ["email", "sms", "push", "in_app"],
+  repeat_frequency: "every 4 hours"
+}
+```
+
+### D. Digest Notifications
+
+#### Daily Digest Email (Optional)
+
+**Sent at**: 8:00 AM (user-configurable)
+
+**Content**:
+```
+Guten Morgen, RA Müller!
+
+Ihre Fristen-Übersicht für Mittwoch, 16. April 2025:
+
+🚨 KRITISCH (Heute fällig):
+• Berufung einlegen - Schmidt v. Müller - 12 O 456/24
+  AG München → LG München I
+  Status: In Bearbeitung
+  [Im System öffnen]
+
+⚠️ DRINGEND (Nächste 3 Tage):
+• Klageerwiderung - Meyer GmbH - 5 C 789/24
+  Fällig: 18. April 2025
+  Status: Noch nicht begonnen
+  [Im System öffnen]
+
+📅 ANSTEHEND (Nächste 7 Tage):
+• 3 weitere Fristen
+  [Alle anzeigen]
+
+📬 NEUE beA-NACHRICHTEN:
+• 2 neue Nachrichten mit Fristen
+  [Postfach öffnen]
+
+👥 TEAM-ÜBERSICHT (Partner-Ansicht):
+• 12 Fristen bei Ihren Mitarbeitern diese Woche
+• 2 Fristen mit Risiko (keine Aktivität seit 5 Tagen)
+  [Team-Dashboard öffnen]
+
+[Einstellungen ändern] [Digest abbestellen]
+```
+
+#### Weekly Summary (Partners)
+
+**Sent**: Friday 5:00 PM
+
+**Content**:
+- All firm deadlines for next week
+- Completion rate this week
+- Near-misses reported
+- Overdue deadlines
+- Team performance metrics
+
+## 3.4 User Interface Requirements
+
+### A. Dashboard Design
+
+#### Lawyer Dashboard (Main View)
+
+**Layout**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Header: Logo | Navigation | Search | 🔔(5) | User Menu     │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  MY DEADLINES                                     [+New]     │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ 🔴 KRITISCH (Nächste 3 Tage)              3 Fristen  │  │
+│  ├──────────────────────────────────────────────────────┤  │
+│  │ 🔴 Berufung einlegen                    16. Apr 2025 │  │
+│  │    12 O 456/24 - Schmidt v. Müller                   │  │
+│  │    AG München → LG München I                          │  │
+│  │    Status: ❌ Nicht begonnen                          │  │
+│  │    [Details] [Start Working] [Delegate]              │  │
+│  ├──────────────────────────────────────────────────────┤  │
+│  │ 🟠 DRINGEND (Nächste 7 Tage)              5 Fristen  │  │
+│  │ 🟡 ANSTEHEND (Nächste 30 Tage)           12 Fristen  │  │
+│  │ 🟢 SPÄTER (> 30 Tage)                     8 Fristen  │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                               │
+│  RECENT ACTIVITY                                             │
+│  • beA: New message from AG München (2 hours ago)           │
+│  • Deadline completed: Revision - Meyer case                 │
+│  • Delegation accepted: RA Weber took over Müller case       │
+│                                                               │
+│  CALENDAR VIEW                              [Month ▾]        │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │  Mo  Tu  We  Th  Fr  Sa  Su                           │ │
+│  │       1   2   3   4   5   6                           │ │
+│  │  🔴  8   9  10  11  12  13   (3 on 7th)               │ │
+│  │  15 🟠  17  18  19  20  21   (2 on 16th)              │ │
+│  └───────────────────────────────────────────────────────┘ │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Responsive Design**: Adapts to tablet/mobile screens
+
+#### Partner/Managing Partner Dashboard
+
+**Additional Widgets**:
+```
+FIRM-WIDE OVERVIEW:
+• Total Active Deadlines: 127
+• Critical (< 3 days): 8
+• At Risk (no activity): 3
+• Completion Rate (This Month): 98.5%
+
+LAWYER WORKLOAD:
+RA Müller:  ████████░░ 15 deadlines
+RA Schmidt: ██████░░░░ 12 deadlines
+RA Weber:   ████░░░░░░  8 deadlines
+
+NEAR-MISSES (This Month): 2
+[View Details]
+
+[Generate Report] [Team Calendar]
+```
+
+### B. Deadline Detail View
+
+**Full Deadline Information**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ◀ Back to Deadlines                                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│ BERUFUNG EINLEGEN                               🔴 NOTFRIST  │
+│ 12 O 456/24 - Schmidt gegen Müller GmbH                      │
+│                                                               │
+│ Fristende: Mittwoch, 16. April 2025, 24:00 Uhr               │
+│ Verbleibende Zeit: 2 Tage, 14 Stunden                        │
+│                                                               │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ DETAILS                                                  │ │
+│ │                                                          │ │
+│ │ Gericht:        AG München → LG München I               │ │
+│ │ Verfahrensart:  ZPO § 511 (Berufung)                    │ │
+│ │ Fristtyp:       Notfrist (NICHT VERLÄNGERBAR)           │ │
+│ │ Berechnung:                                              │ │
+│ │  • Urteilszustellung: 15. März 2025                      │ │
+│ │  • Fristbeginn: 16. März 2025 (§ 187 BGB)               │ │
+│ │  • Dauer: 1 Monat                                        │ │
+│ │  • Fristende: 16. April 2025                             │ │
+│ │  • Feiertage geprüft: Bayern, keine Verlängerung         │ │
+│ │                                                          │ │
+│ │ [Berechnung anzeigen] [PDF exportieren]                 │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                               │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ STATUS & ASSIGNMENT                                      │ │
+│ │                                                          │ │
+│ │ Status:         ❌ Nicht begonnen                        │ │
+│ │ Zugewiesen an:  RA Müller                               │ │
+│ │ Supervisor:     Partner Weber                            │ │
+│ │ Vertreter:      RA Schmidt (Urlaub ab 10.04.)           │ │
+│ │ Priorität:      🔴 Kritisch                             │ │
+│ │                                                          │ │
+│ │ [Status ändern] [Delegieren] [Vertreter hinzufügen]    │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                               │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ MANDANT                                                  │ │
+│ │                                                          │ │
+│ │ Name:           ABC Versicherung GmbH                    │ │
+│ │ Kontakt:        claims@abc-versicherung.de               │ │
+│ │ Besonderheiten: Wöchentliche Updates erforderlich        │ │
+│ │                                                          │ │
+│ │ [Mandant kontaktieren] [Notiz hinzufügen]               │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                               │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ DOKUMENTE                                                │ │
+│ │                                                          │ │
+│ │ 📄 Urteil_12_O_456_24.pdf (524 KB)                       │ │
+│ │    15.03.2025 - Quelle: beA                              │ │
+│ │    [Öffnen] [Download]                                   │ │
+│ │                                                          │ │
+│ │ 📄 Rechtsmittelbelehrung.pdf (124 KB)                    │ │
+│ │    15.03.2025 - Quelle: beA                              │ │
+│ │    [Öffnen] [Download]                                   │ │
+│ │                                                          │ │
+│ │ 📝 Fristberechnung.pdf (Auto-generiert)                  │ │
+│ │    [Download] [Für Akte exportieren]                     │ │
+│ │                                                          │ │
+│ │ [+ Dokument hochladen]                                   │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                               │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ AKTIVITÄTSVERLAUF                                        │ │
+│ │                                                          │ │
+│ │ 16.03.2025 14:23 - Frist erstellt (Auto via beA)         │ │
+│ │ 16.03.2025 14:25 - Zugewiesen an RA Müller               │ │
+│ │ 01.04.2025 10:00 - Erinnerung gesendet (2 Wochen)        │ │
+│ │ 09.04.2025 10:00 - Erinnerung gesendet (1 Woche)         │ │
+│ │ 13.04.2025 10:00 - DRINGEND: Erinnerung (3 Tage)         │ │
+│ │ 14.04.2025 10:00 - Eskalation Level 2 (Partner Weber)    │ │
+│ │                                                          │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                               │
+│ AKTIONEN:                                                     │
+│ [Als erledigt markieren] [Bearbeitung starten]               │
+│ [Delegieren] [Zeit buchen] [Notiz hinzufügen]                │
+│ [Löschen]                                                     │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### C. Calendar View
+
+**Integrated Calendar**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ KALENDERANSICHT                   [Tag|Woche|MONAT|Jahr]    │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  < April 2025 >                                               │
+│                                                               │
+│  Mo        Di        Mi        Do        Fr        Sa   So  │
+│     1          2          3          4          5     6   │
+│                                                           │
+│  🔴7        8          9         10         11    12  13  │
+│  3 Fristen                                                │
+│  • Beruf.                                                 │
+│  • Klage                                                  │
+│  • Termin                                                 │
+│                                                           │
+│  14        15    🟠16         17         18    19  20      │
+│                  2 Fristen                                │
+│                  • Revision                               │
+│                  • Widersp.                               │
+│                                                           │
+│  21        22         23         24         25    26  27  │
+│                                                           │
+│  28        29         30                                  │
+│                                                           │
+│ Legend: 🔴 Notfrist  🟠 Wichtig  🟡 Normal  🟢 Information  │
+│                                                               │
+│ [Sync mit Outlook] [Als PDF exportieren] [Drucken]          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Click on Date**: Shows all deadlines for that day in sidebar
+
+### D. Search and Filter
+
+**Advanced Search**:
+```
+SUCHE & FILTER:
+┌─────────────────────────────────────────────────────────────┐
+│ Suchbegriff: [________________] 🔍                           │
+│                                                               │
+│ Filter:                                                       │
+│ ☑ Notfristen                                                  │
+│ ☐ Richterliche Fristen                                       │
+│ ☐ Termine                                                     │
+│                                                               │
+│ Status:                                                       │
+│ ☑ Nicht begonnen                                              │
+│ ☑ In Bearbeitung                                              │
+│ ☐ Erledigt                                                    │
+│                                                               │
+│ Zeitraum:                                                     │
+│ ● Nächste 7 Tage                                              │
+│ ○ Nächste 30 Tage                                             │
+│ ○ Alle aktiven                                                │
+│ ○ Benutzerdefiniert: [Von] [Bis]                             │
+│                                                               │
+│ Gericht:                                                      │
+│ [Alle Gerichte ▾]                                             │
+│                                                               │
+│ Zugewiesen an:                                                │
+│ [Alle Anwälte ▾]                                              │
+│                                                               │
+│ [Filter zurücksetzen] [Suchen]                                │
+└─────────────────────────────────────────────────────────────┘
+
+Ergebnisse: 15 Fristen gefunden
+```
+
+### E. Mobile App Interface
+
+**Simplified Mobile View**:
+```
+┌─────────────────┐
+│ ≡  FRISTEN   🔔 │
+├─────────────────┤
+│                 │
+│ 🔴 HEUTE (2)    │
+│ ▼               │
+│ Berufung        │
+│ 12 O 456/24     │
+│ ❌ Nicht begonnen│
+│ [Details >]     │
+│                 │
+│ Klage           │
+│ 5 C 789/24      │
+│ ✅ Erledigt      │
+│ [Details >]     │
+│                 │
+│ 🟠 DIESE WOCHE  │
+│ (5)             │
+│                 │
+│ 🟡 NÄCHSTE WOCHE│
+│ (8)             │
+│                 │
+│ [+ Neue Frist]  │
+│                 │
+│ Tab Bar:        │
+│ 📋 🔔 📅 ⚙️    │
+│ Fristen beA Kal.│
+│                 │
+└─────────────────┘
+```
+
+**Touch-Friendly**:
+- Large tap targets (min 44x44 px)
+- Swipe gestures (swipe right to mark complete, swipe left for options)
+- Pull-to-refresh
+- Offline mode (view cached data)
+
+## 3.5 Workflow Features
+
+### A. Deadline Templates (See 3.1.E)
+
+### B. Workflow Automation
+
+#### Auto-Assignment Rules
+
+**Rule Engine**:
+```
+Rule: Auto-assign based on case
+if new_deadline.case.assigned_to exists:
+    assign deadline to case.assigned_to
+
+Rule: Auto-assign based on court
+if court == "Arbeitsgericht":
+    assign to specialist_labor_lawyer
+
+Rule: Auto-assign based on deadline type
+if deadline_type == "Revision":
+    assign to partner_level_lawyer (revisions = complex)
+
+Rule: Round-robin for unmatched
+assign to next_available_lawyer_in_rotation
+```
+
+**User-Configurable**:
+- Create custom rules via UI
+- Priority order of rules
+- Override automatic assignment
+
+#### Status Auto-Update
+
+**Smart Status Tracking**:
+```
+if document_uploaded_to_deadline:
+    if user_action == "Filed via beA":
+        status = "Completed"
+        completion_date = now()
+        notify supervisor
+
+if time_logged_against_deadline:
+    if status == "Not Started":
+        status = "In Progress"
+        started_date = now()
+```
+
+### C. Approval Workflows
+
+#### Multi-Step Approval for Critical Deadlines
+
+**Example: Berufung Approval**:
+```
+Step 1: Associate drafts appeal
+        [Submit for Review]
+
+Step 2: Partner reviews
+        [Approve] [Request Changes] [Reject]
+
+        If approved:
+        Step 3: Submit to court via beA
+                [File Now] [Schedule Filing]
+
+        Status updates automatically at each step
+```
+
+**Approval UI**:
+```
+APPROVAL REQUEST:
+┌─────────────────────────────────────────────────────────────┐
+│ RA Müller requests approval for:                             │
+│ Berufungsschrift - Schmidt v. Müller - 12 O 456/24           │
+│                                                               │
+│ Deadline: 16. April 2025 (in 2 days)                         │
+│                                                               │
+│ Attached Document:                                            │
+│ 📄 Berufungsschrift_Entwurf.pdf (842 KB)                     │
+│    [Preview] [Download]                                       │
+│                                                               │
+│ Comments from RA Müller:                                      │
+│ "Bitte um Durchsicht, insbesondere Seite 5-7"                │
+│                                                               │
+│ Your Action:                                                  │
+│ [✅ Approve & File] [✏️ Request Changes] [❌ Reject]          │
+│                                                               │
+│ Comments (optional):                                          │
+│ [_____________________________________________]               │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### D. Document Linking
+
+**Associate Documents with Deadlines**:
+```
+Deadline Documents:
+- Source Documents (judgments, orders)
+- Work Product (drafts, filings)
+- Supporting Documents (evidence, precedents)
+- Correspondence (client emails, court emails)
+- Filing Confirmations (beA receipts)
+
+Document Management:
+- Drag & drop to attach
+- Auto-link from beA
+- Version control (v1, v2, final)
+- Access control per document
+```
+
+### E. Time Tracking Integration (See 2.4.D)
+
+### F. Reporting and Analytics
+
+#### Standard Reports
+
+**Deadline Completion Report**:
+```
+FRIST-COMPLIANCE-BERICHT
+Zeitraum: März 2025
+
+Gesamtstatistik:
+- Fristen fällig: 127
+- Rechtzeitig erledigt: 125 (98.4%)
+- Verspätet: 0
+- Near-Miss (< 24h): 2 (1.6%)
+
+Nach Anwalt:
+RA Müller:  45 Fristen, 100% rechtzeitig, 1 Near-Miss
+RA Schmidt: 38 Fristen, 100% rechtzeitig, 0 Near-Miss
+RA Weber:   44 Fristen, 97.7% rechtzeitig, 1 verspätet
+
+Nach Fristtyp:
+Notfristen:        89, 100% rechtzeitig
+Richterl. Fristen: 28,  96.4% rechtzeitig
+Termine:           10, 100% rechtzeitig
+
+Nach Gericht:
+AG München: 45 Fristen, 100%
+LG Berlin:  32 Fristen, 100%
+...
+
+[Als PDF exportieren] [Excel exportieren]
+```
+
+**Near-Miss Analysis**:
+```
+BEINAHE-VERSÄUMNISSE (NEAR-MISSES)
+Monat: März 2025
+
+Anzahl: 2 Vorfälle
+
+Vorfall 1:
+- Fall: Meyer GmbH
+- Frist: Widerspruch
+- Fällig: 15.03.2025
+- Entdeckt: 14.03.2025 (1 Tag vorher)
+- Ursache: Anwalt im Urlaub, Vertreter nicht informiert
+- Maßnahme: Automatische Vertreterzuweisung implementiert
+
+Vorfall 2:
+- Fall: Stadt München
+- Frist: Klageerwiderung
+- Fällig: 28.03.2025
+- Entdeckt: 26.03.2025 (2 Tage vorher)
+- Ursache: Frist in Excel statt System eingetragen
+- Maßnahme: Schulung für Mitarbeiter geplant
+
+Trend: ↓ -50% vs. Februar (4 Vorfälle)
+
+[Detailansicht] [Exportieren]
+```
+
+#### Custom Reports
+
+**Report Builder**:
+```
+BERICHT ERSTELLEN:
+Berichtstyp: [Fristenübersicht ▾]
+Zeitraum: [01.01.2025] bis [31.03.2025]
+Gruppieren nach: [Anwalt ▾]
+Filter:
+  - Fristtyp: [Alle ▾]
+  - Gericht: [Alle ▾]
+  - Status: [Alle ▾]
+Sortierung: [Fristende ▾]
+Format: [PDF ▾ / Excel / CSV]
+
+[Vorschau] [Erstellen] [Als Vorlage speichern]
+```
 
 ---
 
