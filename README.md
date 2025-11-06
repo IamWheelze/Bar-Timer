@@ -32,6 +32,33 @@ docker-compose exec backend npm run db:init
 
 **That's it! The system is now running!** 🎉
 
+Or use the automated script:
+```bash
+./start.sh  # Starts everything and opens browser
+./verify.sh # Verifies all services are working
+```
+
+---
+
+## 📚 Documentation
+
+**Getting Started:**
+- **[QUICKSTART.md](QUICKSTART.md)** - Ultra-quick 5-minute setup
+- **[DEPLOY.md](DEPLOY.md)** - Complete deployment guide with 34-test manual checklist
+- **[start.sh](start.sh)** - Automated startup script
+
+**Testing & Quality:**
+- **[TESTING.md](TESTING.md)** - 45/45 automated tests passing (100%)
+- **[VERIFICATION.md](VERIFICATION.md)** - System verification report
+- **[verify.sh](verify.sh)** - Automated verification script
+
+**Support:**
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[README.md](README.md)** - This file (system overview)
+
+**Specification:**
+- **[GERMAN_LAWYER_DEADLINE_SYSTEM_SPECIFICATION.md](GERMAN_LAWYER_DEADLINE_SYSTEM_SPECIFICATION.md)** - Complete product specification
+
 ---
 
 ## 📋 What You Just Built
