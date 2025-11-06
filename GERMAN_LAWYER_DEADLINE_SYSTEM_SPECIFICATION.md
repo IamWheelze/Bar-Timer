@@ -5084,7 +5084,98 @@ Deadline Rules:
 
 # PART 6: USER PERSONAS & SPECIFIC NEEDS
 
-*[To be completed]*
+## A. Solo Practitioner
+
+**Profile**: 1 lawyer, minimal staff, 50-100 cases, very price-sensitive
+
+**Unique Needs**:
+- Ultra-affordable (€29-49/month)
+- Simple, works out-of-box (< 30 min setup)
+- Mobile-first (always on the go)
+- Self-service (no IT support)
+
+**Key Features**: beA integration, deadline calc, calendar sync, notifications
+**Success Metric**: Zero missed deadlines, saves 5+ hours/month
+
+## B. Small Firm (2-10 Lawyers)
+
+**Profile**: 2-10 lawyers, flat hierarchy, 200-500 cases, moderate budget
+
+**Unique Needs**:
+- Team collaboration and coordination
+- Easy delegation and substitute coverage
+- Partner oversight of associates
+- Shared calendars and case access
+
+**Key Features**: Team dashboard, delegation, permissions, reporting
+**Success Metric**: 100% assignment clarity, zero vacation gaps, < 1 near-miss/month
+
+## C. Medium Firm (10-50 Lawyers)
+
+**Profile**: 10-50 lawyers, multiple partners, specialized practice areas, 1,000-3,000 cases
+
+**Unique Needs**:
+- Central administration
+- Practice area specialization
+- Advanced reporting and analytics
+- Integration with RA-MICRO/DATEV
+- Quality control workflows
+
+**Key Features**: Admin console, approval workflows, integrations, KPI dashboards
+**Success Metric**: 99.5%+ compliance, all practice areas using system, integration complete
+
+## D. Large Firm (50+ Lawyers)
+
+**Profile**: 50-500+ lawyers, complex hierarchy, multiple offices, enterprise budget
+
+**Unique Needs**:
+- Enterprise features (SSO, advanced security, SLA)
+- Multi-office support
+- Compliance and audit capabilities
+- Custom workflows and white-labeling
+- Dedicated support and training
+
+**Key Features**: SSO, API, custom integrations, advanced security, dedicated account manager
+**Success Metric**: > 95% adoption, 99.9%+ compliance, ROI demonstrated, > 80% satisfaction
+
+## E. Legal Secretary/Paralegal (ReNo)
+
+**Profile**: Administrative support, deadline entry and document processing
+
+**Unique Needs**:
+- Visibility without full edit rights
+- Efficient data entry tools
+- Document management capabilities
+- Reminder coordination
+
+**Workflow**: Process beA messages, create deadlines, assign to lawyers, monitor progress
+**Success Metric**: 100% beA processed < 2 hours, zero entry errors
+
+## F. Managing Partner
+
+**Profile**: Firm leadership, oversight, risk management
+
+**Unique Needs**:
+- Executive dashboard (firm-wide health)
+- Risk alerts and near-miss analysis
+- Performance metrics by lawyer
+- Strategic reporting
+
+**View**: High-level KPIs, critical risks, workload distribution, compliance trends
+**Success Metric**: Zero firm-wide missed deadlines, near-misses trending down
+
+## G. IT Administrator
+
+**Profile**: Technical management, system configuration, user support
+
+**Unique Needs**:
+- User and permission management
+- Integration configuration (beA, calendar, email)
+- Security controls and audit logs
+- System monitoring and troubleshooting
+
+**Tools**: Admin console, API management, error logs, support access
+**Success Metric**: Issues resolved < 24h, 99.9%+ uptime, zero security incidents
 
 ---
 
