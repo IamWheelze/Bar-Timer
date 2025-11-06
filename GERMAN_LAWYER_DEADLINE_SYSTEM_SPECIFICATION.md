@@ -4547,7 +4547,146 @@ Format: [PDF ▾ / Excel / CSV]
 
 # PART 4: EDGE CASES & SPECIAL SCENARIOS
 
-*[To be completed]*
+## What Happens When...
+
+### A. beA System is Down
+
+**Scenario**: beA experiencing outage, deadline approaching within 48 hours
+
+**System Response Protocol**:
+- **> 48h before deadline**: Monitor status, prepare paper filing backup
+- **24-48h**: Level 3 escalation, provide court contact info for alternative filing
+- **< 24h**: Level 5 escalation to all partners, provide emergency filing instructions (paper, fax, email)
+- Document everything for potential Wiedereinsetzung
+
+### B. Court Changes Deadline Retroactively
+
+**Scenario**: Court issues correction changing service date
+
+**System Actions**:
+1. Level 5 alert to all stakeholders
+2. Display retroactive deadline change warning
+3. Auto-generate Wiedereinsetzung packet if deadline passed
+4. Update records with full audit trail
+5. Flag for malpractice insurance notification
+
+### C. Multiple Lawyers Work on Same Case
+
+**Prevention**: ONE primary responsible person required per deadline
+
+**Coordination Features**:
+- Role clarification (Primary, Supervisor, Backup, CC)
+- Conflict alerts if multiple mark as "In Progress"
+- Coordination dashboard showing who accessed when
+- Comment threads with @mentions
+
+### D. Deadline Falls on Impossible Date
+
+**Scenario**: Calculation produces Feb 30 or similar
+
+**Solution**: § 188 Abs. 3 BGB - use last day of month
+- Example: Jan 31 + 1 month = Feb 28 (or 29 in leap year)
+- System automatically handles edge cases
+- Logs show adjustment reasoning
+
+### E. Client Wants Earlier Internal Deadlines
+
+**Configuration**: Per-client buffer settings (e.g., 3 days before legal deadline)
+
+**System Behavior**:
+- Displays both internal and legal deadlines
+- Separate reminder schedules for each
+- Tracking compliance with both
+- Client satisfaction vs. legal compliance metrics
+
+### F. Cross-Border Cases with Different Rules
+
+**Handling**:
+- Flag case as "International"
+- Hague Service Convention adjustments
+- EU regulation conflict warnings
+- Conservative approach: Use shortest deadline if conflicting
+- Manual review required for complex jurisdictional issues
+
+### G. Retroactive Deadline Discovery
+
+**Scenario**: Old judgment discovered, deadline already passed
+
+**System Response**:
+1. Level 5 alert - missed deadline detected
+2. Calculate Wiedereinsetzung application deadline (2 weeks from discovery)
+3. Generate comprehensive documentation packet
+4. Notify all required parties (partners, insurance, client)
+5. Provide step-by-step remediation checklist
+
+### H. Force Majeure Situations
+
+**Examples**: Natural disaster, pandemic, serious illness, ransomware
+
+**System Support**:
+- "Disaster Mode" with affected period configuration
+- Auto-flag all affected deadlines
+- Mass Wiedereinsetzung preparation
+- Evidence collection and documentation
+- Automatic delegation to available lawyers
+
+### I. Technical Failures on Deadline Day
+
+**Prevention**:
+- Cloud-based (accessible anywhere)
+- Mobile app backup
+- Offline mode with local caching
+- 99.9% uptime SLA
+- Multiple datacenter redundancy
+
+**Emergency Procedures**: Manual filing via court's beA directly, paper, or fax
+
+### J. Deadline Calculation Disputes
+
+**Scenario**: Lawyer disagrees with system calculation
+
+**Handling**:
+1. Show full calculation with legal provisions
+2. Allow manual override with required justification
+3. Require partner approval for Notfristen overrides
+4. Document override in audit trail
+5. Conservative principle: When in doubt, use earlier (safer) deadline
+
+### K. Client Communication Failures
+
+**Scenario**: Client unreachable near deadline, decision needed
+
+**Protocol**:
+- Day -5: First attempt
+- Day -3: Second attempt with urgency
+- Day -2: Escalation (registered letter)
+- Day -1: Managing partner decision whether to file
+- Day 0: Final attempt, execute decision
+
+System tracks all attempts with timestamps
+
+### L. System Bugs or Data Errors
+
+**If Bug Confirmed**:
+1. Immediate hotfix deployment
+2. Recalculate all affected deadlines
+3. Notify ALL users immediately
+4. Provide remediation resources
+5. Add test case, increase QA
+6. Consider third-party audit
+
+**Transparency and fast response critical for user trust**
+
+### M. System Migration Issues
+
+**Protocol**:
+- Phase 1: Preparation and validation (4 weeks)
+- Phase 2: Parallel run (both systems active, 2 weeks)
+- Phase 3: Verification and audit (1 week)
+- Phase 4: Cutover with final sync
+- Phase 5: Post-migration monitoring (30 days)
+
+**Key**: Keep old system accessible for 90 days as backup
 
 ---
 
